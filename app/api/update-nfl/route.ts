@@ -17,29 +17,54 @@ export async function GET() {
       `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${apiKey}&regions=${region}&markets=${markets}`
     );
 
-    const data = await response.json();
+    const raw = await response.text();
+    let data;
 
-    if (!Array.isArray(data)) {
-      console.error("Unexpected response format from The Odds API:", data);
-      throw new Error("Unexpected response format from The Odds API");
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      console.error("❌ Failed to parse Odds API JSON:", raw);
+      throw new Error("Invalid JSON from The Odds API");
+    }
+
+    // ✅ Log the structure to confirm what we’re dealing with
+    console.log("🔍 Odds API Response Type:", typeof data);
+    console.log("🔍 Odds API Keys:", Object.keys(data));
+
+    // Handle different structures
+    let games = [];
+    if (Array.isArray(data)) {
+      games = data;
+    } else if (data.data && Array.isArray(data.data)) {
+      games = data.data;
+    } else if (data.bookmakers || data.market) {
+      // fallback: single flattened format
+      games = [data];
+    } else {
+      console.error("⚠️ Unrecognized Odds API format:", data);
+      return NextResponse.json({
+        success: false,
+        error: "Unexpected response format from The Odds API",
+        sample: data,
+      });
     }
 
     const allProps: any[] = [];
 
-    // Flatten the odds data
-    for (const game of data) {
-      const home = game.home_team;
-      const away = game.away_team;
-      const commence_time = game.commence_time;
+    // Flatten props
+    for (const game of games) {
+      const home = game.home_team || "";
+      const away = game.away_team || "";
+      const commence_time = game.commence_time || null;
 
       for (const bookmaker of game.bookmakers || []) {
-        const source = bookmaker.title;
+        const source = bookmaker.title || "Unknown";
         for (const market of bookmaker.markets || []) {
           for (const outcome of market.outcomes || []) {
-            if (!outcome.description) continue; // skip invalid
+            if (!outcome.description) continue;
 
             allProps.push({
-              player_name: outcome.description, // ✅ player name
+              player_name: outcome.description, // ✅ from your spreadsheet
               team: home,
               opponent: away,
               stat_type: market.key || market.name || "",
@@ -62,7 +87,7 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "No prop data found." });
     }
 
-    // Save to Supabase
+    // Upload to Supabase
     const { error } = await supabase
       .from("nfl_player_props")
       .upsert(allProps, { onConflict: "player_name,team,stat_type,label" });
