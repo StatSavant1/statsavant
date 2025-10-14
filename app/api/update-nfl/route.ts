@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // backend write access
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function GET() {
@@ -30,22 +30,23 @@ export async function GET() {
     for (const game of data) {
       for (const book of game.bookmakers || []) {
         for (const market of book.markets || []) {
-          // Group outcomes by player for merging O/U
           const rowsMap = new Map<string, any>();
 
           for (const o of market.outcomes || []) {
             const outcomeName = (o.name || "").toLowerCase();
 
-            // Try multiple fields to extract player name
+            // ✅ Correct player name extraction
             const player =
-              o.description ||
+              o.description || // The Odds API usually stores player name here
               o.participant ||
               o.player ||
               o.player_name ||
-              (outcomeName !== "over" && outcomeName !== "under" ? o.name : "");
+              "";
 
-            if (!player) continue; // skip invalid rows
+            // Skip invalid rows
+            if (!player || outcomeName === "over" || outcomeName === "under") continue;
 
+            // Build unique key for each player/market/game combo
             const key = `${player}-${market.key}-${game.id}`;
 
             if (!rowsMap.has(key)) {
@@ -54,7 +55,7 @@ export async function GET() {
                 team: game.home_team,
                 opponent: game.away_team,
                 stat_type: market.key,
-                line: o.point ?? null,
+                line: null,
                 over_odds: null,
                 under_odds: null,
                 source: book.title,
@@ -64,23 +65,19 @@ export async function GET() {
 
             const row = rowsMap.get(key);
 
-            // Set line if missing
-            if (row.line == null && o.point != null) row.line = o.point;
-
-            // Assign odds properly
+            // Assign odds by matching Over/Under outcomes
             if (outcomeName === "over") {
+              row.line = o.point ?? row.line;
               row.over_odds = o.price ?? row.over_odds;
             } else if (outcomeName === "under") {
+              row.line = o.point ?? row.line;
               row.under_odds = o.price ?? row.under_odds;
-            } else {
-              // fallback if odds not labeled O/U
-              if (row.over_odds == null) row.over_odds = o.price ?? null;
             }
 
             rowsMap.set(key, row);
           }
 
-          // Push all merged rows
+          // Push all merged player rows
           allProps.push(...Array.from(rowsMap.values()));
         }
       }
@@ -93,7 +90,7 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "No prop data found." });
     }
 
-    // Upsert into Supabase
+    // Upsert to Supabase
     const { error } = await supabase
       .from("nfl_player_props")
       .upsert(allProps, { onConflict: "player_name,stat_type,team" });
@@ -109,6 +106,7 @@ export async function GET() {
     return NextResponse.json({ success: false, error: err.message });
   }
 }
+
 
 
 
