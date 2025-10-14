@@ -13,16 +13,21 @@ export async function GET() {
     const region = "us";
     const markets = "player_pass_yds,player_reception_yds,player_rush_yds";
 
-    const response = await fetch(
-      `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${apiKey}&regions=${region}&markets=${markets}`
-    );
+  const response = await fetch(
+  `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${apiKey}&regions=${region}&markets=${markets}`
+);
 
-    const data = await response.json();
+const data = await response.json();
 
-    if (!Array.isArray(data)) {
-      console.error("Unexpected API response:", data);
-      throw new Error("Unexpected response format from The Odds API");
-    }
+console.log("🔍 Odds API Response Sample:", JSON.stringify(data, null, 2));
+
+if (!Array.isArray(data)) {
+  return NextResponse.json({
+    success: false,
+    error: "Unexpected response format",
+    sample: data, // 👈 this will show us what The Odds API is actually returning
+  });
+}
 
     const allProps: any[] = [];
 
