@@ -3,77 +3,114 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // backend write access
 );
 
 export async function GET() {
   try {
-    // 1️⃣ Get list of NFL events
-    const eventsResp = await fetch(
-      `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/events/?apiKey=${process.env.NEXT_PUBLIC_ODDS_API_KEY}`
-    );
-    const events = await eventsResp.json();
+    const apiKey = process.env.NEXT_PUBLIC_ODDS_API_KEY!;
+    const sport = "americanfootball_nfl";
+    const region = "us";
+    const markets = "player_pass_yds,player_reception_yds,player_rush_yds";
 
-    if (!Array.isArray(events)) {
-      throw new Error(`Unexpected events format: ${JSON.stringify(events)}`);
+    const response = await fetch(
+      `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${apiKey}&regions=${region}&markets=${markets}`
+    );
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      console.error("Unexpected API response:", data);
+      throw new Error("Unexpected response format from The Odds API");
     }
 
-    let allProps: any[] = [];
+    const allProps: any[] = [];
 
-    // 2️⃣ Loop through each event to get player prop odds
-    for (const game of events.slice(0, 5)) {
-      const oddsUrl = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/events/${game.id}/odds/?apiKey=${process.env.NEXT_PUBLIC_ODDS_API_KEY}&regions=us&markets=player_pass_yds,player_rush_yds,player_reception_yds&oddsFormat=american`;
+    // Loop through each game
+    for (const game of data) {
+      for (const book of game.bookmakers || []) {
+        for (const market of book.markets || []) {
+          // Group outcomes by player for merging O/U
+          const rowsMap = new Map<string, any>();
 
-      const resp = await fetch(oddsUrl);
-      const oddsData = await resp.json();
+          for (const o of market.outcomes || []) {
+            const outcomeName = (o.name || "").toLowerCase();
 
-      if (oddsData?.bookmakers) {
-        const mapped = oddsData.bookmakers.flatMap((book: any) =>
-          (book.markets || []).flatMap((market: any) =>
-            (market.outcomes || []).map((o: any) => ({
-              player_name: o.name,
-              team: oddsData.home_team,
-              opponent: oddsData.away_team,
-              stat_type: market.key,
-              line: o.point ?? null,
-              over_odds: o.price ?? null,
-              source: book.title,
-              updated_at: new Date().toISOString(),
-            }))
-          )
-        );
+            // Try multiple fields to extract player name
+            const player =
+              o.description ||
+              o.participant ||
+              o.player ||
+              o.player_name ||
+              (outcomeName !== "over" && outcomeName !== "under" ? o.name : "");
 
-        allProps.push(...mapped);
+            if (!player) continue; // skip invalid rows
+
+            const key = `${player}-${market.key}-${game.id}`;
+
+            if (!rowsMap.has(key)) {
+              rowsMap.set(key, {
+                player_name: player,
+                team: game.home_team,
+                opponent: game.away_team,
+                stat_type: market.key,
+                line: o.point ?? null,
+                over_odds: null,
+                under_odds: null,
+                source: book.title,
+                updated_at: new Date().toISOString(),
+              });
+            }
+
+            const row = rowsMap.get(key);
+
+            // Set line if missing
+            if (row.line == null && o.point != null) row.line = o.point;
+
+            // Assign odds properly
+            if (outcomeName === "over") {
+              row.over_odds = o.price ?? row.over_odds;
+            } else if (outcomeName === "under") {
+              row.under_odds = o.price ?? row.under_odds;
+            } else {
+              // fallback if odds not labeled O/U
+              if (row.over_odds == null) row.over_odds = o.price ?? null;
+            }
+
+            rowsMap.set(key, row);
+          }
+
+          // Push all merged rows
+          allProps.push(...Array.from(rowsMap.values()));
+        }
       }
     }
 
-    // 3️⃣ Deduplicate before upsert
-    if (allProps.length > 0) {
-      const uniqueProps = Array.from(
-        new Map(
-          allProps.map((p) => [
-            `${p.player_name}-${p.stat_type}-${p.opponent}`,
-            p,
-          ])
-        ).values()
-      );
+    console.log(`✅ Total props processed: ${allProps.length}`);
+    console.log("Sample prop:", allProps[0]);
 
-      const { error } = await supabase
-        .from("nfl_player_props")
-        .upsert(uniqueProps, { onConflict: "player_name,stat_type,opponent" });
-
-      if (error) throw error;
+    if (allProps.length === 0) {
+      return NextResponse.json({ success: false, message: "No prop data found." });
     }
 
-    return NextResponse.json({
-      success: true,
-      inserted: allProps.length,
-    });
+    // Upsert into Supabase
+    const { error } = await supabase
+      .from("nfl_player_props")
+      .upsert(allProps, { onConflict: "player_name,stat_type,team" });
+
+    if (error) {
+      console.error("Supabase upsert error:", error);
+      throw error;
+    }
+
+    return NextResponse.json({ success: true, inserted: allProps.length });
   } catch (err: any) {
     console.error("Error in update-nfl:", err);
     return NextResponse.json({ success: false, error: err.message });
   }
 }
+
+
 
 
 
