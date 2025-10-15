@@ -3,38 +3,47 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface PlayerProp {
-  description: string; // player name
-  home_team: string;
-  away_team: string;
-  market: string;
-  label: string;
-  price: number;
-  point: number;
+  description: string | null;
+  home_team: string | null;
+  away_team: string | null;
+  market: string | null;
+  label: string | null;
+  price: number | null;
+  point: number | null;
 }
 
 export default function NFLPage() {
   const [data, setData] = useState<PlayerProp[]>([]);
   const [search, setSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from("nfl_player_props")
-        .select("*")
-        .order("description", { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from("nfl_player_props")
+          .select("*")
+          .order("description", { ascending: true });
 
-      if (!error && data) setData(data);
+        if (error) {
+          console.error("Supabase fetch error:", error.message);
+          setError("Error loading data from Supabase.");
+        } else if (data) {
+          setData(data);
+        }
+      } catch (err: any) {
+        console.error("Fetch error:", err.message);
+        setError("Unexpected error loading data.");
+      }
     };
     fetchData();
   }, []);
 
-  // Group by player
   const grouped = data.reduce((acc: any, item) => {
     const key = item.description || "Unknown";
     if (!acc[key]) acc[key] = [];
@@ -46,7 +55,8 @@ export default function NFLPage() {
     player.toLowerCase().includes(search.toLowerCase())
   );
 
-  const marketLabel = (market: string) => {
+  const marketLabel = (market: string | null) => {
+    if (!market) return "";
     if (market.includes("pass")) return "Passing Yards";
     if (market.includes("rush")) return "Rushing Yards";
     if (market.includes("rec")) return "Receiving Yards";
@@ -69,7 +79,9 @@ export default function NFLPage() {
         />
       </div>
 
-      {filteredPlayers.length === 0 ? (
+      {error ? (
+        <p className="text-center text-red-400">{error}</p>
+      ) : filteredPlayers.length === 0 ? (
         <p className="text-center text-gray-400">No players found.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -83,17 +95,21 @@ export default function NFLPage() {
               </h2>
 
               <p className="text-gray-400 text-sm mb-3">
-                {grouped[player][0].home_team} vs {grouped[player][0].away_team}
+                {grouped[player][0]?.home_team} vs{" "}
+                {grouped[player][0]?.away_team}
               </p>
 
               {grouped[player].map((prop: PlayerProp, idx: number) => (
-                <div key={idx} className="mb-2 border-t border-gray-800 pt-2">
+                <div
+                  key={idx}
+                  className="mb-2 border-t border-gray-800 pt-2 last:border-b-0"
+                >
                   <p className="text-gray-300 font-medium">
                     {marketLabel(prop.market)} —{" "}
-                    <span className="font-bold">{prop.point}</span>
+                    <span className="font-bold">{prop.point ?? "-"}</span>
                   </p>
                   <p className="text-sm text-gray-400">
-                    {prop.label} {prop.price}
+                    {prop.label ?? ""} {prop.price ?? ""}
                   </p>
                 </div>
               ))}
@@ -104,7 +120,4 @@ export default function NFLPage() {
     </div>
   );
 }
-
-
-
 
