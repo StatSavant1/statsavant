@@ -54,11 +54,11 @@ export default function NFLPage() {
   }, []);
 
   // ------------ Helper: find stats for a player (case-insensitive exact match)
-  const getStatsForPlayer = (playerName: string | null) => {
-    if (!playerName) return undefined;
-    const key = playerName.trim().toLowerCase();
-    return statsData.find((s) => (s.player_name || "").trim().toLowerCase() === key);
-  };
+const getStatsForPlayer = (playerName: string | null) => {
+  if (!playerName) return undefined;
+  const key = playerName.trim().toLowerCase();
+  return statsData.find((s) => (s.player || "").trim().toLowerCase() === key);
+};
 
   // ------------ Group props by player
   const groupedByPlayer: Record<string, PlayerProp[]> = propsData.reduce(
