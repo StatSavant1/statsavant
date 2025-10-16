@@ -7,73 +7,50 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-interface PlayerProp {
-  description: string | null; // player name
-  home_team: string | null;
-  away_team: string | null;
-  market: string | null;
-  label: string | null;
-  price: number | null;
-  point: number | null;
-}
-
-interface PlayerStat {
-  player: string | null;
-  team: string | null;
-  game_1: number | null;
-  game_2: number | null;
-  game_3: number | null;
-  game_4: number | null;
-  game_5: number | null;
-  avg_l_5: number | null;
-  cover_percent_l5: number | null;
-  delta_avg_to_line: number | null;
-}
-
 export default function NFLPage() {
-  const [propsData, setPropsData] = useState<PlayerProp[]>([]);
-  const [statsData, setStatsData] = useState<PlayerStat[]>([]);
+  const [propsData, setPropsData] = useState<any[]>([]);
+  const [statsData, setStatsData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Player Props
         const { data: props, error: propsErr } = await supabase
           .from("nfl_player_props")
-          .select("*")
-          .order("description", { ascending: true });
+          .select("*");
 
-        // Recent Stats
-        const { data: stats, error: statsErr } = await supabase
-          .from("nfl_qb_recent_stats")
-          .select("*")
-          .order("player", { ascending: true });
+        const qbStats = await supabase.from("nfl_qb_recent_stats").select("*");
+        const rbStats = await supabase.from("nfl_rb_recent_stats").select("*");
+        const wrStats = await supabase.from("nfl_wr_recent_stats").select("*");
 
-        if (propsErr || statsErr) {
-          console.error("Supabase fetch error:", propsErr || statsErr);
+        if (propsErr || qbStats.error || rbStats.error || wrStats.error) {
+          console.error("Supabase fetch error:", propsErr || qbStats.error || rbStats.error || wrStats.error);
           setError("Error loading data from Supabase.");
         } else {
           setPropsData(props || []);
-          setStatsData(stats || []);
+          // merge all player stats
+          setStatsData([
+            ...(qbStats.data || []),
+            ...(rbStats.data || []),
+            ...(wrStats.data || []),
+          ]);
         }
       } catch (err: any) {
         console.error("Fetch error:", err.message);
         setError("Unexpected error loading data.");
       }
     };
+
     fetchData();
   }, []);
 
-  // Helper to find stats by player name
   const getStatsForPlayer = (player: string | null) =>
     statsData.find(
-      (s) => s.player?.trim().toLowerCase() === player?.trim().toLowerCase()
+      (s) => s.player_name?.trim().toLowerCase() === player?.trim().toLowerCase()
     );
 
-  // Group props by player
-  const grouped = propsData.reduce((acc: any, item) => {
+  const grouped = propsData.reduce((acc: any, item: any) => {
     const key = item.description || "Unknown";
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
@@ -115,14 +92,13 @@ export default function NFLPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlayers.map((player) => {
-            // show one line per market (Over only)
             const uniqueMarkets = Object.values(
-  grouped[player].reduce((acc: any, prop: PlayerProp) => {
-    const key = prop.market || ""; // ✅ prevent "null" as index type
-    if (key && !acc[key] && prop.label === "Over") acc[key] = prop;
-    return acc;
-  }, {} as Record<string, PlayerProp>)
-) as PlayerProp[];
+              grouped[player].reduce((acc: any, prop: any) => {
+                const key = prop.market || "";
+                if (key && !acc[key] && prop.label === "Over") acc[key] = prop;
+                return acc;
+              }, {} as Record<string, any>)
+            );
 
             const stats = getStatsForPlayer(player);
 
@@ -152,18 +128,18 @@ export default function NFLPage() {
                     {stats && (
                       <>
                         <p className="text-sm text-gray-400 mb-1">
-                          Avg L5: {stats.avg_l_5 ?? "-"} yds
+                          Avg L5: {stats.avg_l_5 ?? "-"}
                         </p>
                         <p className="text-sm text-gray-400 mb-1">
                           Cover %:{" "}
                           <span
                             className={
-                              (stats.cover_percent_l5 ?? 0) > 50
+                              (stats.cover_%_l5 ?? 0) > 50
                                 ? "text-green-400"
                                 : "text-red-400"
                             }
                           >
-                            {stats.cover_percent_l5 ?? 0}%
+                            {stats.cover_%_l5 ?? 0}%
                           </span>
                         </p>
                         <p className="text-sm text-gray-400 mb-1">
@@ -179,26 +155,22 @@ export default function NFLPage() {
                           </span>
                         </p>
 
-                        {/* Last 5 games trend bar */}
+                        {/* Last 5 Games */}
                         <div className="flex gap-1 text-xs mt-2">
-                          {[
-                            stats.game_1,
-                            stats.game_2,
-                            stats.game_3,
-                            stats.game_4,
-                            stats.game_5,
-                          ].map((val, i) => (
-                            <div
-                              key={i}
-                              className={`px-2 py-1 rounded ${
-                                val && prop.point && val > prop.point
-                                  ? "bg-green-700 text-green-100"
-                                  : "bg-red-700 text-red-100"
-                              }`}
-                            >
-                              {val ?? "-"}
-                            </div>
-                          ))}
+                          {[stats["1"], stats["2"], stats["3"], stats["4"], stats["5"]].map(
+                            (val: number | null, i: number) => (
+                              <div
+                                key={i}
+                                className={`px-2 py-1 rounded ${
+                                  val && prop.point && val > prop.point
+                                    ? "bg-green-700 text-green-100"
+                                    : "bg-red-700 text-red-100"
+                                }`}
+                              >
+                                {val ?? "-"}
+                              </div>
+                            )
+                          )}
                         </div>
                       </>
                     )}
