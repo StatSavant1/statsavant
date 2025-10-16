@@ -115,7 +115,7 @@ export default function NFLPage() {
                   {grouped[player][0]?.away_team}
                 </p>
 
-                {uniqueMarkets.map((p: any, idx) => {
+ {uniqueMarkets.map((p: any, idx) => {
   const prop = p as {
     market: string | null;
     point: number | null;
@@ -130,64 +130,58 @@ export default function NFLPage() {
         <span className="font-bold">{prop.point ?? "-"}</span>
       </p>
 
-                    {stats && (
-                      <>
-                        <p className="text-sm text-gray-400 mb-1">
-                          Avg L5: {stats.avg_l_5 ?? "-"}
-                        </p>
-                        <p className="text-sm text-gray-400 mb-1">
-                          Cover %:{" "}
-                          <span
-                            className={
-                              (stats.cover_%_l5 ?? 0) > 50
-                                ? "text-green-400"
-                                : "text-red-400"
-                            }
-                          >
-                            {stats.cover_%_l5 ?? 0}%
-                          </span>
-                        </p>
-                        <p className="text-sm text-gray-400 mb-1">
-                          Δ Avg to Line:{" "}
-                          <span
-                            className={
-                              (stats.delta_avg_to_line ?? 0) > 0
-                                ? "text-green-400"
-                                : "text-red-400"
-                            }
-                          >
-                            {stats.delta_avg_to_line ?? 0}
-                          </span>
-                        </p>
+      {stats && (
+        <>
+          <p className="text-sm text-gray-400 mb-1">
+            Avg L5: {stats.avg_l_5 ?? "-"}
+          </p>
+          <p className="text-sm text-gray-400 mb-1">
+            Cover %:{" "}
+            <span
+              className={
+                (stats.cover_%_l5 ?? 0) > 50
+                  ? "text-green-400"
+                  : "text-red-400"
+              }
+            >
+              {stats.cover_%_l5 ?? 0}%
+            </span>
+          </p>
+          <p className="text-sm text-gray-400 mb-1">
+            Δ Avg to Line:{" "}
+            <span
+              className={
+                (stats.delta_avg_to_line ?? 0) > 0
+                  ? "text-green-400"
+                  : "text-red-400"
+              }
+            >
+              {stats.delta_avg_to_line ?? 0}
+            </span>
+          </p>
 
-                        {/* Last 5 Games */}
-                        <div className="flex gap-1 text-xs mt-2">
-                          {[stats["1"], stats["2"], stats["3"], stats["4"], stats["5"]].map(
-                            (val: number | null, i: number) => (
-                              <div
-                                key={i}
-                                className={`px-2 py-1 rounded ${
-                                  val && prop.point && val > prop.point
-                                    ? "bg-green-700 text-green-100"
-                                    : "bg-red-700 text-red-100"
-                                }`}
-                              >
-                                {val ?? "-"}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+          {/* Last 5 Games */}
+          <div className="flex gap-1 text-xs mt-2">
+            {[stats["1"], stats["2"], stats["3"], stats["4"], stats["5"]].map(
+              (val: number | null, i: number) => (
+                <div
+                  key={i}
+                  className={`px-2 py-1 rounded ${
+                    val && prop.point && val > prop.point
+                      ? "bg-green-700 text-green-100"
+                      : "bg-red-700 text-red-100"
+                  }`}
+                >
+                  {val ?? "-"}
+                </div>
+              )
+            )}
+          </div>
+        </>
       )}
     </div>
   );
-}
+})}
+
 
 
