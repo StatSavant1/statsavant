@@ -117,12 +117,12 @@ export default function NFLPage() {
           {filteredPlayers.map((player) => {
             // show one line per market (Over only)
             const uniqueMarkets = Object.values(
-              grouped[player].reduce((acc: any, prop: PlayerProp) => {
-                const key = prop.market;
-                if (!acc[key] && prop.label === "Over") acc[key] = prop;
-                return acc;
-              }, {})
-            ) as PlayerProp[];
+  grouped[player].reduce((acc: any, prop: PlayerProp) => {
+    const key = prop.market || ""; // ✅ prevent "null" as index type
+    if (key && !acc[key] && prop.label === "Over") acc[key] = prop;
+    return acc;
+  }, {} as Record<string, PlayerProp>)
+) as PlayerProp[];
 
             const stats = getStatsForPlayer(player);
 
