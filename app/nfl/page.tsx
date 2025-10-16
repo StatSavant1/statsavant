@@ -115,15 +115,20 @@ export default function NFLPage() {
                   {grouped[player][0]?.away_team}
                 </p>
 
-                {uniqueMarkets.map((prop, idx) => (
-                  <div
-                    key={idx}
-                    className="mb-3 border-t border-gray-800 pt-2 last:border-b-0"
-                  >
-                    <p className="text-gray-300 font-medium">
-                      {marketLabel(prop.market)} —{" "}
-                      <span className="font-bold">{prop.point ?? "-"}</span>
-                    </p>
+                {uniqueMarkets.map((p: any, idx) => {
+  const prop = p as {
+    market: string | null;
+    point: number | null;
+  };
+  return (
+    <div
+      key={idx}
+      className="mb-3 border-t border-gray-800 pt-2 last:border-b-0"
+    >
+      <p className="text-gray-300 font-medium">
+        {marketLabel(prop.market)} —{" "}
+        <span className="font-bold">{prop.point ?? "-"}</span>
+      </p>
 
                     {stats && (
                       <>
