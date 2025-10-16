@@ -134,17 +134,12 @@ export default function NFLPage() {
                     {stats ? (
                       <div className="text-gray-400 text-sm mt-1">
                         <p>
-                          Cover % (L5):{" "}
-                          <span className="text-green-400">
-                            {stats.cover_%_l5 ?? "-"}%
-                          </span>
-                        </p>
-                        <p>
-                          Avg (L5):{" "}
-                          <span className="text-gray-200">
-                            {stats.avg_l_5 ?? "-"}
-                          </span>
-                        </p>
+  Cover % (L5):{" "}
+  <span className="text-green-400">
+    {(stats["cover_%_l5"] ?? "-")}%
+  </span>
+</p>
+
                         <p>
                           Δ vs Line:{" "}
                           <span
