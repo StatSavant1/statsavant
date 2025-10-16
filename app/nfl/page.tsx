@@ -182,6 +182,3 @@ export default function NFLPage() {
     </div>
   );
 })}
-
-
-
