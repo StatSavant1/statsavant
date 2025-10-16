@@ -13,9 +13,9 @@ type PlayerProp = {
 
 type PlayerStats = {
   player: string | null;
-  cover_%_l5: number | null;
-  avg_l_5: number | null;
-  delta_avg_to_line: number | null;
+  "cover_%_l5": number | null;
+  "avg_l_5": number | null;
+  "delta_avg_to_line": number | null;
   "1"?: number | null;
   "2"?: number | null;
   "3"?: number | null;
