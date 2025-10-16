@@ -173,12 +173,8 @@ export default function NFLPage() {
                   }`}
                 >
                   {val ?? "-"}
-                </div>
-              )
-            )}
-          </div>
-        </>
+                 </div>
       )}
     </div>
   );
-})}
+}
