@@ -45,6 +45,58 @@ export default function NFLPage() {
   const [statsData, setStatsData] = useState<PlayerStats[]>([]);
   const [search, setSearch] = useState("");
 
+  import React, { useState, useEffect } from "react";
+
+export default function NFLPage() {
+  const [players, setPlayers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch("/api/fetch-nfl-stats", { cache: "no-store" });
+        const json = await res.json();
+
+        if (json.success) {
+          setPlayers(json.stats || []);
+        } else {
+          console.error("Failed to load player data:", json.error);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return (
+    <div className="text-white p-6">
+      <h1 className="text-3xl font-bold mb-6">NFL Player Props</h1>
+
+      {players.length === 0 ? (
+        <p className="text-gray-400">Loading player data...</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {players.map((p, i) => (
+            <div key={i} className="border border-gray-700 rounded-lg p-4">
+              <h2 className="text-xl font-semibold mb-1">{p.player}</h2>
+              <p className="text-sm text-gray-400 mb-2">
+                {p.market.replace("player_", "").replace("_yds", "").toUpperCase()}
+              </p>
+              <p>
+                Line: <span className="font-bold">{p.point}</span>
+              </p>
+              <p>
+                Price: <span className="font-bold">{p.price}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 useEffect(() => {
   const fetchData = async () => {
     try {
