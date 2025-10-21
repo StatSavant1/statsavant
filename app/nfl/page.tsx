@@ -30,7 +30,7 @@ type PlayerStats = {
   g3: number | null;
   g4: number | null;
   g5: number | null;
-  cover_%_l5: number | null;
+  ["cover_%_l5"]: number | null; // ✅ fixed key
   avg_l_5: number | null;
   delta_avg_to_line: number | null;
 };
@@ -239,7 +239,7 @@ export default function NFLPage() {
                       <p className="text-sm">
                         Cover % (L5):{" "}
                         <span className="font-semibold text-yellow-400">
-                          {stat.cover_%_l5 ?? "—"}%
+                          {stat["cover_%_l5"] ?? "—"}%
                         </span>
                       </p>
                       <p className="text-sm">
