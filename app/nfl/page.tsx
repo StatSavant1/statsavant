@@ -45,24 +45,31 @@ export default function NFLPage() {
   const [statsData, setStatsData] = useState<PlayerStats[]>([]);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // ✅ Pull player props (all types)
-        const res = await fetch("/api/fetch-nfl-props");
-        const data = await res.json();
-        if (data.success) setPropsData(data.props);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      // ✅ Fetch player props from your backend
+      const res = await fetch("/api/fetch-nfl-stats", { cache: "no-store" });
+      const json = await res.json();
 
-        // ✅ Pull recent stats (combined QB/RB/WR)
-        const statsRes = await fetch("/api/fetch-nfl-stats");
-        const statsJson = await statsRes.json();
-        if (statsJson.success) setStatsData(statsJson.stats);
-      } catch (err) {
-        console.error("Error fetching data:", err);
+      if (json.success) {
+        setPlayers(json.stats || []);
+      } else {
+        console.error("Failed to load player data:", json.error);
       }
-    };
-    fetchData();
-  }, []);
+
+      // ✅ (optional) if you later have a separate stats route:
+      // const statsRes = await fetch("/api/fetch-nfl-recent-stats", { cache: "no-store" });
+      // const statsJson = await statsRes.json();
+      // if (statsJson.success) setStatsData(statsJson.stats);
+
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    }
+  };
+
+  fetchData();
+}, []);
 
   // Group props by player
   const grouped = propsData.reduce((acc: Record<string, PlayerProp[]>, prop) => {
