@@ -8,21 +8,24 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Explicitly query from the 'public' schema
+    // ✅ No schema prefix needed — Supabase defaults to 'public'
     const [qb, rb, wr] = await Promise.all([
-      supabase.from("public.nfl_qb_recent_stats").select("*"),
-      supabase.from("public.nfl_rb_recent_stats").select("*"),
-      supabase.from("public.nfl_wr_recent_stats").select("*"),
+      supabase.from("nfl_qb_recent_stats").select("*"),
+      supabase.from("nfl_rb_recent_stats").select("*"),
+      supabase.from("nfl_wr_recent_stats").select("*"),
     ]);
 
     if (qb.error || rb.error || wr.error) {
       return NextResponse.json(
-        { success: false, error: qb.error?.message || rb.error?.message || wr.error?.message },
+        {
+          success: false,
+          error: qb.error?.message || rb.error?.message || wr.error?.message,
+        },
         { status: 500 }
       );
     }
 
-    // Merge all three tables into one array for frontend use
+    // ✅ Merge all player stats into one array
     const merged = [
       ...(qb.data || []),
       ...(rb.data || []),
@@ -37,6 +40,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
