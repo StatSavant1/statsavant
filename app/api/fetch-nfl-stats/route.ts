@@ -8,14 +8,14 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ 1. Player prop lines
+    // ✅ 1. Pull player props
     const { data: props, error: propsError } = await supabase
       .from("nfl_player_props_latest")
       .select("*");
 
     if (propsError) throw propsError;
 
-    // ✅ 2. Pull recent stats from all sources
+    // ✅ 2. Pull recent stat data
     const [qb, rb, wr] = await Promise.all([
       supabase.from("nfl_qb_recent_stats").select("*"),
       supabase.from("nfl_rb_recent_stats").select("*"),
@@ -25,7 +25,7 @@ export async function GET() {
     if (qb.error || rb.error || wr.error)
       throw qb.error || rb.error || wr.error;
 
-    // ✅ 3. Merge and normalize data
+    // ✅ 3. Normalize each row
     const normalize = (row: any) => ({
       player: row.player,
       g1: row["1"] ?? null,
@@ -33,10 +33,10 @@ export async function GET() {
       g3: row["3"] ?? null,
       g4: row["4"] ?? null,
       g5: row["5"] ?? null,
-      cover_%_l5: row["cover_%_l5"] ?? null,
-      avg_l_5: row.avg_l_5 ?? null,
-      delta_avg_to_line: row.delta_avg_to_line ?? null,
-      updated_at: row.updated_at ?? null,
+      ["cover_%_l5"]: row["cover_%_l5"] ?? null,
+      avg_l_5: row["avg_l_5"] ?? null,
+      delta_avg_to_line: row["delta_avg_to_line"] ?? null,
+      updated_at: row["updated_at"] ?? null,
     });
 
     const recentStats = [
@@ -45,7 +45,7 @@ export async function GET() {
       ...(wr.data || []).map(normalize),
     ];
 
-    // ✅ 4. Return everything
+    // ✅ 4. Return both datasets
     return NextResponse.json({
       success: true,
       stats: props,
@@ -59,6 +59,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
