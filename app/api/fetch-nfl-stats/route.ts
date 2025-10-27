@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Build select string safely (avoids spacing issues)
+    // ✅ Select without aliasing — Supabase parser-safe
     const selectColumns = [
       "player",
       "g1",
@@ -16,30 +16,40 @@ export async function GET() {
       "g3",
       "g4",
       "g5",
-      `"cover_%_l5" AS cover_pct_l5`,
+      "\"cover_%_l5\"",
       "avg_l_5",
       "delta_avg_to_line",
       "updated_at",
     ].join(", ");
 
-    // ✅ Fetch data from all three tables
     const [qb, rb, wr] = await Promise.all([
       supabase.from("nfl_qb_recent_stats").select(selectColumns),
       supabase.from("nfl_rb_recent_stats").select(selectColumns),
       supabase.from("nfl_wr_recent_stats").select(selectColumns),
     ]);
 
-    // ✅ Handle errors
     if (qb.error || rb.error || wr.error) {
       console.error("Supabase fetch error:", qb.error || rb.error || wr.error);
       return NextResponse.json(
-        { success: false, error: qb.error?.message || rb.error?.message || wr.error?.message },
+        {
+          success: false,
+          error: qb.error?.message || rb.error?.message || wr.error?.message,
+        },
         { status: 500 }
       );
     }
 
-    // ✅ Merge all player data
-    const merged = [...(qb.data || []), ...(rb.data || []), ...(wr.data || [])];
+    // ✅ Rename "cover_%_l5" → "cover_pct_l5" after fetching
+    const renameField = (row: any) => {
+      const { ["cover_%_l5"]: cover_pct_l5, ...rest } = row;
+      return { ...rest, cover_pct_l5 };
+    };
+
+    const merged = [
+      ...(qb.data?.map(renameField) || []),
+      ...(rb.data?.map(renameField) || []),
+      ...(wr.data?.map(renameField) || []),
+    ];
 
     return NextResponse.json({
       success: true,
@@ -51,6 +61,7 @@ export async function GET() {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
 
 
 
