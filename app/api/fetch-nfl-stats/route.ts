@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// ✅ Use your environment variables
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -8,50 +9,39 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // Fetch all three tables
+    // ✅ Pull data from each table
     const [qb, rb, wr] = await Promise.all([
-      supabase.from("nfl_qb_recent_stats").select("*"),
-      supabase.from("nfl_rb_recent_stats").select("*"),
-      supabase.from("nfl_wr_recent_stats").select("*"),
+      supabase.from("nfl_qb_recent_stats").select(
+        "player, g1, g2, g3, g4, g5, cover_%_l5, avg_l_5, delta_avg_to_line, updated_at"
+      ),
+      supabase.from("nfl_rb_recent_stats").select(
+        "player, g1, g2, g3, g4, g5, cover_%_l5, avg_l_5, delta_avg_to_line, updated_at"
+      ),
+      supabase.from("nfl_wr_recent_stats").select(
+        "player, g1, g2, g3, g4, g5, cover_%_l5, avg_l_5, delta_avg_to_line, updated_at"
+      ),
     ]);
 
-    // Check for query errors
+    // ✅ Check for errors
     if (qb.error || rb.error || wr.error) {
+      console.error("Supabase fetch error:", qb.error || rb.error || wr.error);
       return NextResponse.json(
-        {
-          success: false,
-          error: qb.error?.message || rb.error?.message || wr.error?.message,
-        },
+        { success: false, error: qb.error?.message || rb.error?.message || wr.error?.message },
         { status: 500 }
       );
     }
 
-    // Merge all stats into one array
-    const merged = [
-      ...(qb.data || []),
-      ...(rb.data || []),
-      ...(wr.data || []),
-    ].map((row) => ({
-      player: row.player || null,
-      g1: row.g1 ?? null,
-      g2: row.g2 ?? null,
-      g3: row.g3 ?? null,
-      g4: row.g4 ?? null,
-      g5: row.g5 ?? null,
-      cover_pct_l5: row["cover_%_l5"] ?? null,
-      avg_l5: row["avg_l_5"] ?? null,
-      delta_avg_to_line: row["delta_avg_to_line"] ?? null,
-      updated_at: row.updated_at ?? null,
-    }));
+    // ✅ Combine results
+    const merged = [...(qb.data || []), ...(rb.data || []), ...(wr.data || [])];
 
-    return NextResponse.json({ success: true, stats: merged });
+    // ✅ Return success
+    return NextResponse.json({ success: true, stats: merged, count: merged.length });
   } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message },
-      { status: 500 }
-    );
+    console.error("Server error:", err);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
 
 
 
