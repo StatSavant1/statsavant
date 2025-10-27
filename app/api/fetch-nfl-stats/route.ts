@@ -8,28 +8,28 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Properly formatted select string (with correct spacing)
-    const selectColumns = `
-      player,
-      g1,
-      g2,
-      g3,
-      g4,
-      g5,
-      "cover_%_l5" AS cover_pct_l5,
-      avg_l_5,
-      delta_avg_to_line,
-      updated_at
-    `;
+    // ✅ Build select string safely (avoids spacing issues)
+    const selectColumns = [
+      "player",
+      "g1",
+      "g2",
+      "g3",
+      "g4",
+      "g5",
+      `"cover_%_l5" AS cover_pct_l5`,
+      "avg_l_5",
+      "delta_avg_to_line",
+      "updated_at",
+    ].join(", ");
 
-    // ✅ Query all 3 tables
+    // ✅ Fetch data from all three tables
     const [qb, rb, wr] = await Promise.all([
       supabase.from("nfl_qb_recent_stats").select(selectColumns),
       supabase.from("nfl_rb_recent_stats").select(selectColumns),
       supabase.from("nfl_wr_recent_stats").select(selectColumns),
     ]);
 
-    // ✅ Handle any fetch errors
+    // ✅ Handle errors
     if (qb.error || rb.error || wr.error) {
       console.error("Supabase fetch error:", qb.error || rb.error || wr.error);
       return NextResponse.json(
@@ -38,10 +38,9 @@ export async function GET() {
       );
     }
 
-    // ✅ Merge all results together
+    // ✅ Merge all player data
     const merged = [...(qb.data || []), ...(rb.data || []), ...(wr.data || [])];
 
-    // ✅ Return the merged results
     return NextResponse.json({
       success: true,
       count: merged.length,
@@ -52,6 +51,7 @@ export async function GET() {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
 
 
 
