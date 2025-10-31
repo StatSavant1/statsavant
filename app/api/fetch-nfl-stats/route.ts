@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Explicitly match Supabase column names
+    // ✅ Supabase-safe select (no aliases)
     const selectQuery = `
       player,
       g1,
@@ -16,20 +16,20 @@ export async function GET() {
       g3,
       g4,
       g5,
-      "cover_%_l5" AS cover_pct_l5,
+      "cover_%_l5",
       avg_l_5,
       delta_avg_to_line,
       updated_at
     `;
 
-    // ✅ Parallel Supabase fetch
+    // ✅ Fetch from all 3 tables
     const [qb, rb, wr] = await Promise.all([
       supabase.from("nfl_qb_recent_stats").select(selectQuery),
       supabase.from("nfl_rb_recent_stats").select(selectQuery),
       supabase.from("nfl_wr_recent_stats").select(selectQuery),
     ]);
 
-    // ✅ Handle possible errors
+    // ✅ Handle Supabase errors
     if (qb.error || rb.error || wr.error) {
       console.error("Supabase fetch error:", qb.error || rb.error || wr.error);
       return NextResponse.json(
@@ -38,16 +38,17 @@ export async function GET() {
       );
     }
 
-    // ✅ Safely combine all non-null arrays
-    const allData = []
-      .concat(qb.data ?? [])
-      .concat(rb.data ?? [])
-      .concat(wr.data ?? []);
+    // ✅ Merge results safely
+    const allData = [
+      ...(qb.data ?? []),
+      ...(rb.data ?? []),
+      ...(wr.data ?? []),
+    ];
 
-    // ✅ Normalize the field names
+    // ✅ Normalize column names
     const normalized = allData.map((row: Record<string, any>) => ({
       ...row,
-      cover_pct_l5: row.cover_pct_l5 ?? row["cover_%_l5"] ?? null,
+      cover_pct_l5: row["cover_%_l5"] ?? null,
     }));
 
     return NextResponse.json({
@@ -63,6 +64,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
