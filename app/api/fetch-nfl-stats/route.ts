@@ -8,7 +8,6 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Use all the actual column names from your schema
     const selectColumns = [
       "player",
       "line",
@@ -28,7 +27,6 @@ export async function GET() {
       "updated_at",
     ].join(", ");
 
-    // ✅ Pull all position tables (QB, RB, WR)
     const [qb, rb, wr] = await Promise.all([
       supabase.from("nfl_qb_recent_stats").select(selectColumns),
       supabase.from("nfl_rb_recent_stats").select(selectColumns),
@@ -47,7 +45,6 @@ export async function GET() {
       );
     }
 
-    // ✅ Rename "cover_%_l5" → "cover_pct_l5" to make frontend usage cleaner
     const normalizeRow = (row: any) => {
       const { ["cover_%_l5"]: cover_pct_l5, ...rest } = row;
       return { ...rest, cover_pct_l5 };
