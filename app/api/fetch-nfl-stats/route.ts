@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Supabase-safe select (no aliases)
+    // ✅ Columns to select from trend tables
     const selectQuery = `
       player,
       g1,
@@ -22,48 +22,62 @@ export async function GET() {
       updated_at
     `;
 
-    // ✅ Fetch from all 3 tables
+    // ✅ Pull all trend data (QB/RB/WR)
     const [qb, rb, wr] = await Promise.all([
       supabase.from("nfl_qb_recent_stats").select(selectQuery),
       supabase.from("nfl_rb_recent_stats").select(selectQuery),
       supabase.from("nfl_wr_recent_stats").select(selectQuery),
     ]);
 
-    // ✅ Handle Supabase errors
     if (qb.error || rb.error || wr.error) {
-      console.error("Supabase fetch error:", qb.error || rb.error || wr.error);
       return NextResponse.json(
         { success: false, error: qb.error?.message || rb.error?.message || wr.error?.message },
         { status: 500 }
       );
     }
 
-    // ✅ Merge results safely
-    const allData = [
+    const allTrends = [
       ...(qb.data ?? []),
       ...(rb.data ?? []),
       ...(wr.data ?? []),
     ];
 
-    // ✅ Normalize column names
-    const normalized = allData.map((row: Record<string, any>) => ({
+    // ✅ Pull current player prop lines
+    const propsRes = await supabase
+      .from("nfl_player_props_latest")
+      .select("description, market, point")
+      .not("point", "is", null);
+
+    if (propsRes.error) {
+      console.error("Error fetching props:", propsRes.error);
+      return NextResponse.json({ success: false, error: propsRes.error.message }, { status: 500 });
+    }
+
+    const propsMap = new Map<string, number>();
+    propsRes.data.forEach((p) => {
+      if (p.description && !propsMap.has(p.description.toLowerCase())) {
+        propsMap.set(p.description.toLowerCase(), p.point);
+      }
+    });
+
+    // ✅ Merge recent stats with latest line
+    const merged = allTrends.map((row: any) => ({
       ...row,
       cover_pct_l5: row["cover_%_l5"] ?? null,
+      current_line: propsMap.get(row.player?.toLowerCase() || "") ?? null,
     }));
 
     return NextResponse.json({
       success: true,
-      count: normalized.length,
-      stats: normalized,
+      count: merged.length,
+      stats: merged,
     });
   } catch (err: any) {
     console.error("Server error:", err);
-    return NextResponse.json(
-      { success: false, error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
 
 
 
