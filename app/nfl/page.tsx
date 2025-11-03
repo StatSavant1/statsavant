@@ -26,6 +26,7 @@ type PlayerStats = {
 
 export default function NFLPage() {
   const [players, setPlayers] = useState<PlayerStats[]>([]);
+  const [statsData, setStatsData] = useState<any>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
