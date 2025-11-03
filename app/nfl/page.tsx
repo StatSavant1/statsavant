@@ -55,6 +55,19 @@ export default function NFLPage() {
         NFL Player Props – Last 5 Games vs Current Line
       </h1>
 
+{statsData && statsData.latest_updated_at && (
+  <p className="text-gray-400 text-sm mt-1">
+    Last updated:{" "}
+    {new Date(statsData.latest_updated_at).toLocaleString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      month: "short",
+      day: "numeric",
+      timeZoneName: "short",
+    })}
+  </p>
+)}
+
       <div className="flex justify-center mb-6">
         <input
           type="text"

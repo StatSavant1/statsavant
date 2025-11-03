@@ -68,10 +68,14 @@ export async function GET() {
     }));
 
     return NextResponse.json({
-      success: true,
-      count: merged.length,
-      stats: merged,
-    });
+  success: true,
+  count: merged.length,
+  latest_updated_at: merged.reduce((latest, row) => {
+    const date = row.updated_at ? new Date(row.updated_at) : null;
+    return !latest || (date && date > latest) ? date : latest;
+  }, null),
+  stats: merged,
+});
   } catch (err: any) {
     console.error("Server error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
