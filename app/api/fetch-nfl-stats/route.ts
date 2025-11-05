@@ -8,79 +8,76 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // ✅ Columns to select from trend tables
-    const selectQuery = `
-      player,
-      g1,
-      g2,
-      g3,
-      g4,
-      g5,
-      "cover_%_l5",
-      avg_l_5,
-      delta_avg_to_line,
-      updated_at
-    `;
-
-    // ✅ Pull all trend data (QB/RB/WR)
+    // 1️⃣ Fetch latest player prop lines
     const [qb, rb, wr] = await Promise.all([
-      supabase.from("nfl_qb_recent_stats").select(selectQuery),
-      supabase.from("nfl_rb_recent_stats").select(selectQuery),
-      supabase.from("nfl_wr_recent_stats").select(selectQuery),
+      supabase.from("nfl_qb_latest_props").select("*"),
+      supabase.from("nfl_rb_latest_props").select("*"),
+      supabase.from("nfl_wr_latest_props").select("*"),
     ]);
 
     if (qb.error || rb.error || wr.error) {
-      return NextResponse.json(
-        { success: false, error: qb.error?.message || rb.error?.message || wr.error?.message },
-        { status: 500 }
+      throw new Error(
+        `Error fetching latest props: ${qb.error?.message || rb.error?.message || wr.error?.message}`
       );
     }
 
-    const allTrends = [
-      ...(qb.data ?? []),
-      ...(rb.data ?? []),
-      ...(wr.data ?? []),
-    ];
+    // 2️⃣ Fetch recent stat trends
+    const [qbStats, rbStats, wrStats] = await Promise.all([
+      supabase.from("nfl_qb_recent_stats").select("*"),
+      supabase.from("nfl_rb_recent_stats").select("*"),
+      supabase.from("nfl_wr_recent_stats").select("*"),
+    ]);
 
-    // ✅ Pull current player prop lines
-    const propsRes = await supabase
-      .from("nfl_player_props_latest")
-      .select("description, market, point")
-      .not("point", "is", null);
-
-    if (propsRes.error) {
-      console.error("Error fetching props:", propsRes.error);
-      return NextResponse.json({ success: false, error: propsRes.error.message }, { status: 500 });
+    if (qbStats.error || rbStats.error || wrStats.error) {
+      throw new Error(
+        `Error fetching recent stats: ${qbStats.error?.message || rbStats.error?.message || wrStats.error?.message}`
+      );
     }
 
-    const propsMap = new Map<string, number>();
-    propsRes.data.forEach((p) => {
-      if (p.description && !propsMap.has(p.description.toLowerCase())) {
-        propsMap.set(p.description.toLowerCase(), p.point);
-      }
+    // 3️⃣ Merge all prop and stat data into single arrays
+    const allProps = [
+      ...(qb.data || []),
+      ...(rb.data || []),
+      ...(wr.data || []),
+    ];
+
+    const allStats = [
+      ...(qbStats.data || []),
+      ...(rbStats.data || []),
+      ...(wrStats.data || []),
+    ];
+
+    // 4️⃣ Combine props + stats per player name
+    const merged = allProps.map((prop) => {
+      const playerStats = allStats.find(
+        (s) => s.player?.toLowerCase().trim() === prop.player?.toLowerCase().trim()
+      );
+      return {
+        ...prop,
+        ...playerStats,
+      };
     });
 
-    // ✅ Merge recent stats with latest line
-    const merged = allTrends.map((row: any) => ({
-      ...row,
-      cover_pct_l5: row["cover_%_l5"] ?? null,
-      current_line: propsMap.get(row.player?.toLowerCase() || "") ?? null,
-    }));
+    // 5️⃣ Determine latest update timestamp across datasets
+    const latestUpdatedAt = [
+      ...(allProps.map((p) => p.updated_at).filter(Boolean) as string[]),
+      ...(allStats.map((s) => s.updated_at).filter(Boolean) as string[]),
+    ]
+      .map((d) => new Date(d))
+      .sort((a, b) => b.getTime() - a.getTime())[0];
 
     return NextResponse.json({
-  success: true,
-  count: merged.length,
-  latest_updated_at: merged.reduce((latest, row) => {
-    const date = row.updated_at ? new Date(row.updated_at) : null;
-    return !latest || (date && date > latest) ? date : latest;
-  }, null),
-  stats: merged,
-});
+      success: true,
+      count: merged.length,
+      latest_updated_at: latestUpdatedAt || null,
+      stats: merged,
+    });
   } catch (err: any) {
-    console.error("Server error:", err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    console.error("❌ Error in fetch-nfl-stats:", err);
+    return NextResponse.json({ success: false, error: err.message });
   }
 }
+
 
 
 
