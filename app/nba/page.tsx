@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import PlayerCard from "@/components/PlayerCard";
+import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type NBAPlayer = {
   player: string | null;
@@ -31,9 +33,23 @@ function isTodayEST(dateString: string | null) {
   endOfTodayEST.setHours(23, 59, 59, 999);
 
   const d = new Date(dateString);
-
   return d >= startOfTodayEST && d <= endOfTodayEST;
 }
+
+/* =======================
+   Utils
+======================= */
+function shuffle<T>(arr: T[]) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+const FREE_PREVIEW_PLAYERS = 5;
+const PREVIEW_STORAGE_KEY = "nba_free_preview_players";
 
 export default function NBAPage() {
   const [players, setPlayers] = useState<NBAPlayer[]>([]);
@@ -42,17 +58,43 @@ export default function NBAPage() {
 
   const [marketFilter, setMarketFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [isAuthed, setIsAuthed] = useState(false);
 
-  /* 🔐 AUTH CHECK */
+  const [isSubscriber, setIsSubscriber] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  /* =======================
+     Auth + Subscription
+  ======================= */
   useEffect(() => {
-    fetch("/api/me", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setIsAuthed(!!d?.user_id))
-      .catch(() => setIsAuthed(false));
+    const supabase = supabaseBrowserClient();
+
+    async function checkSub() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setIsSubscriber(false);
+        setAuthChecked(true);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .eq("id", user.id)
+        .single();
+
+      setIsSubscriber(profile?.subscription_status === "active");
+      setAuthChecked(true);
+    }
+
+    checkSub();
   }, []);
 
-  /* 📥 LOAD NBA DATA */
+  /* =======================
+     Load NBA Data
+  ======================= */
   useEffect(() => {
     async function load() {
       try {
@@ -73,33 +115,36 @@ export default function NBAPage() {
     load();
   }, []);
 
-  /* 📊 MARKETS (FILTER OUT ASSISTS) */
-const markets = useMemo(() => {
-  return Array.from(
-    new Set(
-      players
-        .map((p) => p.market)
-        .filter((m) => m !== "player_assists")
-    )
-  );
-}, [players]);
+  /* =======================
+     Markets (exclude assists)
+  ======================= */
+  const markets = useMemo(() => {
+    return Array.from(
+      new Set(
+        players
+          .map((p) => p.market)
+          .filter((m) => m && m !== "player_assists")
+      )
+    );
+  }, [players]);
 
-  /* 🎯 FILTER FIRST (TODAY ONLY – EST) */
+  /* =======================
+     Base Filtering
+  ======================= */
   const filteredPlayers = useMemo(() => {
     return players
-      // 🕒 KEEP TODAY'S PROPS UNTIL 11:59 PM EST
       .filter((p) => isTodayEST(p.updated_at))
-      // Market filter
       .filter((p) =>
         marketFilter === "all" ? true : p.market === marketFilter
       )
-      // Search filter
       .filter((p) =>
         (p.player ?? "").toLowerCase().includes(search.toLowerCase())
       );
   }, [players, marketFilter, search]);
 
-  /* ⭐ POINTS FIRST + RANDOM OTHERS */
+  /* =======================
+     Points First + Shuffle Others
+  ======================= */
   const orderedPlayers = useMemo(() => {
     const points = filteredPlayers.filter(
       (p) => p.market === "player_points"
@@ -107,21 +152,65 @@ const markets = useMemo(() => {
     const others = filteredPlayers.filter(
       (p) => p.market !== "player_points"
     );
-
-    // shuffle non-points
-    for (let i = others.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [others[i], others[j]] = [others[j], others[i]];
-    }
-
-    return [...points, ...others];
+    return [...points, ...shuffle(others)];
   }, [filteredPlayers]);
 
-  /* 🔒 FREE PREVIEW LIMIT */
-  const visiblePlayers = useMemo(() => {
-    return isAuthed ? orderedPlayers : orderedPlayers.slice(0, 5);
-  }, [orderedPlayers, isAuthed]);
+  /* =======================
+     Session-Locked Free Preview
+  ======================= */
+  const freePreviewPlayerSet = useMemo(() => {
+    if (isSubscriber) return new Set<string>();
 
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem(PREVIEW_STORAGE_KEY);
+      if (stored) {
+        return new Set<string>(JSON.parse(stored));
+      }
+    }
+
+    const seen = new Set<string>();
+    const selected: string[] = [];
+
+    for (const row of orderedPlayers) {
+      if (row.player && !seen.has(row.player)) {
+        seen.add(row.player);
+        selected.push(row.player);
+      }
+      if (selected.length === FREE_PREVIEW_PLAYERS) break;
+    }
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        PREVIEW_STORAGE_KEY,
+        JSON.stringify(selected)
+      );
+    }
+
+    return new Set(selected);
+  }, [orderedPlayers, isSubscriber]);
+
+  /* =======================
+     Free vs Locked Split
+  ======================= */
+  const freePlayers = useMemo(() => {
+    return isSubscriber
+      ? orderedPlayers
+      : orderedPlayers.filter(
+          (p) => p.player && freePreviewPlayerSet.has(p.player)
+        );
+  }, [orderedPlayers, freePreviewPlayerSet, isSubscriber]);
+
+  const lockedPlayers = useMemo(() => {
+    return isSubscriber
+      ? []
+      : orderedPlayers.filter(
+          (p) => !p.player || !freePreviewPlayerSet.has(p.player)
+        );
+  }, [orderedPlayers, freePreviewPlayerSet, isSubscriber]);
+
+  /* =======================
+     Last Updated
+  ======================= */
   const lastUpdated = useMemo(() => {
     const dates = players
       .map((p) => p.updated_at)
@@ -140,6 +229,8 @@ const markets = useMemo(() => {
     return <div className="p-8 text-red-500">NBA Error: {error}</div>;
   }
 
+  const isPaywalled = !isSubscriber;
+
   return (
     <div className="min-h-screen bg-black text-white px-6 py-8">
       {/* HEADER */}
@@ -152,35 +243,34 @@ const markets = useMemo(() => {
             Last Updated: {lastUpdated}
           </p>
         )}
-      </div>
 
-      {/* PAYWALL BANNER */}
-      {!isAuthed && (
-        <div className="mb-6 bg-neutral-900 border border-neutral-800 rounded-xl px-6 py-4 flex items-center justify-between">
-          <div>
-            <p className="font-semibold">
-              You’re viewing a limited free preview.
-            </p>
-            <p className="text-sm text-gray-400">
-              Subscribe to unlock full NBA player prop access.
-            </p>
+        {isPaywalled && (
+          <div className="mt-4 bg-neutral-900 border border-neutral-700 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="font-semibold">
+                You’re viewing the free preview.
+              </p>
+              <p className="text-gray-400 text-sm">
+                Subscribe to unlock full NBA access.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href="/subscribe"
+                className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl hover:bg-green-400 transition"
+              >
+                Subscribe
+              </Link>
+              <Link
+                href="/login"
+                className="bg-neutral-800 border border-neutral-700 px-4 py-2 rounded-xl"
+              >
+                Login
+              </Link>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <a
-  href="/pricing"
-  className="bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded-lg font-bold transition"
->
-  Subscribe
-</a>
-            <a
-              href="/login"
-              className="border border-neutral-700 px-4 py-2 rounded-lg"
-            >
-              Login
-            </a>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* CONTROLS */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -206,37 +296,59 @@ const markets = useMemo(() => {
         />
       </div>
 
-      {/* EMPTY STATE OR PLAYER GRID */}
-      {visiblePlayers.length === 0 ? (
-        <div className="mt-16 text-center text-gray-400">
-          <p className="text-xl font-semibold text-green-400">
-            No NBA props available right now
-          </p>
-          <p className="mt-2 text-sm">
-            Props populate when lines are released.
-          </p>
-          <p className="text-sm">
-            Today’s props are removed once the day ends at 11:59 PM EST.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {visiblePlayers.map((p, idx) => (
-            <PlayerCard
-              key={`${p.player ?? "unknown"}-${p.market}-${idx}`}
-              player={p.player ?? "Unknown"}
-              market={p.market}
-              line={p.line}
-              lastGames={p.last_ten}
-              avg={p.avg_l10}
-              windowLabel="L10"
-            />
+      {/* FREE PREVIEW GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+        {freePlayers.map((p, idx) => (
+          <PlayerCard
+            key={`free-${p.player ?? "unknown"}-${p.market}-${idx}`}
+            player={p.player ?? "Unknown"}
+            market={p.market}
+            line={p.line}
+            lastGames={p.last_ten}
+            avg={p.avg_l10}
+            windowLabel="L10"
+          />
+        ))}
+      </div>
+
+      {/* LOCKED PLAYERS */}
+      {!isSubscriber && lockedPlayers.length > 0 && (
+        <div className="columns-1 md:columns-2 xl:columns-3 gap-6">
+          {lockedPlayers.map((p, idx) => (
+            <div
+              key={`locked-${p.player ?? "unknown"}-${p.market}-${idx}`}
+              className="relative mb-6 break-inside-avoid"
+            >
+              <div className="blur-md pointer-events-none">
+                <PlayerCard
+                  player={p.player ?? "Unknown"}
+                  market={p.market}
+                  line={p.line}
+                  lastGames={p.last_ten}
+                  avg={p.avg_l10}
+                  windowLabel="L10"
+                />
+              </div>
+
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-black/80 border border-neutral-700 rounded-xl p-4 text-center">
+                  <p className="font-bold">Subscribe to unlock</p>
+                  <Link
+                    href="/subscribe"
+                    className="inline-block mt-2 bg-green-500 text-black font-bold px-4 py-2 rounded-xl"
+                  >
+                    View Plans
+                  </Link>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}
     </div>
   );
 }
+
 
 
 

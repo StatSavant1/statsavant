@@ -66,6 +66,7 @@ export default function NFLPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
+      // Logged out → not subscriber, but preview allowed
       if (!user) {
         setIsSubscriber(false);
         setAuthChecked(true);
@@ -206,7 +207,7 @@ export default function NFLPage() {
   /* =======================
      Loading / Error
   ======================= */
-  if (loading || !authChecked) {
+  if (loading) {
     return <div className="p-8 text-gray-400">Loading NFL data…</div>;
   }
 
@@ -331,6 +332,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
