@@ -1,101 +1,118 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseServerClient } from "@/lib/supabaseServer";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+type PropRow = {
+  player: string | null;
+  market: string | null;
+  point: number | null;
+  home_team: string | null;
+  away_team: string | null;
+  commence_time: string | null;
+};
+
+type StatRow = {
+  player: string | null;
+  market: string | null;
+  g1: number | null;
+  g2: number | null;
+  g3: number | null;
+  g4: number | null;
+  g5: number | null;
+  avg_l5: number | null;
+  updated_at?: string | null;
+};
+
+function normalizeName(name: string | null | undefined): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+(jr|sr|ii|iii|iv)\s*$/i, "")
+    .trim();
+}
 
 export async function GET() {
+  console.log("🔥 NFL API HIT");
+
   try {
-    // 1️⃣ Fetch latest player prop lines
-    const [qb, rb, wr] = await Promise.all([
-      supabase.from("nfl_qb_latest_props").select("*"),
-      supabase.from("nfl_rb_latest_props").select("*"),
-      supabase.from("nfl_wr_latest_props").select("*"),
-    ]);
+    const supabase = await supabaseServerClient();
 
-    if (qb.error || rb.error || wr.error) {
-      throw new Error(
-        `Error fetching latest props: ${qb.error?.message || rb.error?.message || wr.error?.message}`
+    // 1) Fetch prop lines
+    const { data: props, error: propsErr } = await supabase
+      .from("nfl_player_props_latest")
+      .select("player, market, point, home_team, away_team, commence_time");
+
+    // 2) Fetch recent stats
+    const { data: stats, error: statsErr } = await supabase
+      .from("nfl_recent_stats_all")
+      .select("*");
+
+    if (propsErr || statsErr) {
+      console.error("❌ Supabase error:", propsErr || statsErr);
+      return NextResponse.json(
+        { success: false, error: propsErr?.message || statsErr?.message },
+        { status: 500 }
       );
     }
 
-    // 2️⃣ Fetch recent stat trends
-    const [qbStats, rbStats, wrStats] = await Promise.all([
-      supabase.from("nfl_qb_recent_stats").select("*"),
-      supabase.from("nfl_rb_recent_stats").select("*"),
-      supabase.from("nfl_wr_recent_stats").select("*"),
-    ]);
-
-    if (qbStats.error || rbStats.error || wrStats.error) {
-      throw new Error(
-        `Error fetching recent stats: ${qbStats.error?.message || rbStats.error?.message || wrStats.error?.message}`
-      );
+    if (!props || !stats) {
+      return NextResponse.json({ success: true, stats: [] });
     }
 
-    // 3️⃣ Merge all prop and stat data into single arrays
-    const allProps = [
-      ...(qb.data || []),
-      ...(rb.data || []),
-      ...(wr.data || []),
-    ];
+    const propsTyped = props as PropRow[];
+    const statsTyped = stats as StatRow[];
 
-    const allStats = [
-      ...(qbStats.data || []),
-      ...(rbStats.data || []),
-      ...(wrStats.data || []),
-    ];
+    // 3) Deduplicate props by player + market
+    const propMap = new Map<string, PropRow>();
 
-    // 4️⃣ Combine props + stats per player name
-    const merged = allProps.map((prop) => {
-      const playerStats = allStats.find(
-        (s) => s.player?.toLowerCase().trim() === prop.player?.toLowerCase().trim()
+    for (const prop of propsTyped) {
+      const normalizedPlayer = normalizeName(prop.player);
+      const key = `${normalizedPlayer}-${prop.market}`;
+
+      if (!propMap.has(key)) {
+        propMap.set(key, prop);
+      }
+    }
+
+    // 4) Merge props + stats
+    const merged = Array.from(propMap.values()).map((prop) => {
+      const normalizedPlayer = normalizeName(prop.player);
+
+      const stat = statsTyped.find(
+        (s) =>
+          normalizeName(s.player) === normalizedPlayer &&
+          s.market === prop.market
       );
+
+      const raw = stat
+        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
+        : [];
+
+      const last_five = raw.filter(
+        (v): v is number => typeof v === "number"
+      );
+
       return {
-        ...prop,
-        ...playerStats,
+        player: prop.player,
+        market: prop.market,
+        line: typeof prop.point === "number" ? prop.point : null,
+        last_five,
+        avg_l5: stat?.avg_l5 ?? null,
+        updated_at: stat?.updated_at ?? null,
+        home_team: prop.home_team,
+        away_team: prop.away_team,
+        commence_time: prop.commence_time,
       };
     });
 
-    // 5️⃣ Determine latest update timestamp across datasets
-    const latestUpdatedAt = [
-      ...(allProps.map((p) => p.updated_at).filter(Boolean) as string[]),
-      ...(allStats.map((s) => s.updated_at).filter(Boolean) as string[]),
-    ]
-      .map((d) => new Date(d))
-      .sort((a, b) => b.getTime() - a.getTime())[0];
+    console.log("✅ NFL MERGED COUNT:", merged.length);
 
-    return NextResponse.json({
-      success: true,
-      count: merged.length,
-      latest_updated_at: latestUpdatedAt || null,
-      stats: merged,
-    });
+    return NextResponse.json({ success: true, stats: merged });
   } catch (err: any) {
-    console.error("❌ Error in fetch-nfl-stats:", err);
-    return NextResponse.json({ success: false, error: err.message });
+    console.error("💥 NFL API ROUTE CRASH:", err);
+    return NextResponse.json(
+      { success: false, error: err?.message || "Server error" },
+      { status: 500 }
+    );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

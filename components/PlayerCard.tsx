@@ -1,128 +1,194 @@
 "use client";
 
+import React from "react";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
   ReferenceLine,
+  ResponsiveContainer,
+  CartesianGrid,
   LabelList,
   Cell,
 } from "recharts";
 
-type Player = {
+type PlayerCardProps = {
   player: string;
+  market: string;
   line: number | null;
-  avg_l_5: number | null;
-  cover_pct_l5: number | null;
-  g1: number | null;
-  g2: number | null;
-  g3: number | null;
-  g4: number | null;
-  g5: number | null;
-  commence_time?: string;
+  lastGames: number[];
+  avg: number | null;
+  windowLabel: string; // "L5" | "L10"
 };
 
-export function PlayerCard({ player }: { player: Player }) {
-  const chartData = [
-    { name: "G1", yards: player.g1 },
-    { name: "G2", yards: player.g2 },
-    { name: "G3", yards: player.g3 },
-    { name: "G4", yards: player.g4 },
-    { name: "G5", yards: player.g5 },
-  ].filter((d) => d.yards !== null);
+export default function PlayerCard({
+  player,
+  market,
+  line,
+  lastGames,
+  avg,
+  windowLabel,
+}: PlayerCardProps) {
+  if (!Array.isArray(lastGames) || lastGames.length === 0) return null;
 
-  const getBarColor = (entry: { yards: number }) => {
-    if (!player.line) return "#22c55e"; // default green if no line
-    return entry.yards >= player.line ? "#22c55e" : "#ef4444"; // green for over, red for under
-  };
+  const data = lastGames.map((v, i) => ({
+    name: `G${i + 1}`,
+    value: v,
+    isOver: line !== null && v >= line,
+  }));
+
+  const avgColor =
+    avg !== null && line !== null
+      ? avg >= line
+        ? "text-green-400"
+        : "text-red-400"
+      : "text-slate-300";
 
   return (
-    <div className="bg-[#111] border border-gray-800 rounded-2xl p-4 shadow-lg hover:shadow-[0_0_15px_#00FF7F30] transition-shadow duration-300">
-      {/* Player Name */}
-      <h2 className="text-lg font-bold text-green-400 mb-2">
-        {player.player || "—"}
+    <div className="rounded-2xl p-6 border border-slate-700/40 bg-gradient-to-br from-[#0b1220] to-[#0e1627] shadow-xl">
+      {/* PLAYER */}
+      <h2 className="text-2xl font-bold text-green-400 mb-3">
+        {player}
       </h2>
 
-      {/* Meta info */}
-      <div className="text-sm mb-3 space-y-1">
-        <p>
-          <span className="text-gray-400">Current Line:</span>{" "}
-          {player.line ? (
-            <span className="text-red-400 font-semibold">{player.line}</span>
-          ) : (
-            <span className="text-gray-500">–</span>
-          )}
-        </p>
-        <p>
-          <span className="text-gray-400">Avg (L5):</span>{" "}
-          <span className="text-blue-400">
-            {player.avg_l_5 != null ? player.avg_l_5.toFixed(2) : "–"}
-          </span>
-        </p>
-        <p>
-          <span className="text-gray-400">Cover % (L5):</span>{" "}
-          <span className="text-green-400">
-            {player.cover_pct_l5 != null
-              ? `${player.cover_pct_l5.toFixed(1)}%`
-              : "–"}
-          </span>
-        </p>
-      </div>
+      {/* MARKET */}
+      <p className="text-slate-200 text-lg mb-1">
+        <span className="font-semibold">Market:</span>{" "}
+        {market.replaceAll("_", " ")}
+      </p>
 
-      {/* Chart */}
-      <div className="flex justify-center">
-        <BarChart
-          width={260}
-          height={200}
-          data={chartData}
-          margin={{ top: 40, right: 10, left: 0, bottom: 10 }} // prevents cutoff
-        >
-          <XAxis dataKey="name" tick={{ fill: "#aaa", fontSize: 12 }} />
-          <YAxis hide />
-          <Tooltip
-            cursor={{ fill: "rgba(255,255,255,0.06)" }}
-            contentStyle={{
-              background: "#111",
-              border: "1px solid #333",
-              borderRadius: "8px",
-            }}
-          />
+      {/* LINE */}
+      <p className="text-slate-200 text-lg mb-1">
+        <span className="font-semibold">Line:</span>{" "}
+        <span className="text-white font-bold">
+          {line ?? "-"}
+        </span>
+      </p>
 
-          <Bar dataKey="yards" radius={[4, 4, 0, 0]}>
-            <LabelList
-              dataKey="yards"
-              position="top"
-              offset={10} // extra spacing for visibility
-              style={{ fill: "#fff", fontSize: 12 }}
+      {/* AVG */}
+      <p className="text-lg font-semibold mb-4">
+        <span className="text-slate-200">
+          Avg ({windowLabel}):
+        </span>{" "}
+        <span className={avgColor}>
+          {avg ?? "-"}
+        </span>
+      </p>
+
+      {/* CHART */}
+      <div className="w-full h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 20, right: 10, left: -5, bottom: 10 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#334155"
+              vertical={false}
             />
-            {chartData.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={getBarColor(entry as { yards: number })}
+
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "#CBD5E1", fontSize: 14 }}
+              tickLine={false}
+            />
+
+            <YAxis
+              tick={{ fill: "#CBD5E1", fontSize: 14 }}
+              tickLine={false}
+              axisLine={false}
+            />
+
+            {/* PROP LINE */}
+            {line !== null && (
+              <ReferenceLine
+                y={line}
+                stroke="#ef4444"
+                strokeDasharray="6 6"
               />
-            ))}
-          </Bar>
+            )}
 
-          {/* Draw line *after* bars to appear on top */}
-          {player.line && (
-            <ReferenceLine
-              y={player.line}
-              stroke="red"
-              strokeDasharray="4 4"
-              label={{
-                value: `Line: ${player.line}`,
-                position: "top",
-                fill: "red",
-                fontSize: 12,
-              }}
-            />
-          )}
-        </BarChart>
+            <Bar dataKey="value" barSize={40} radius={[6, 6, 0, 0]}>
+              <LabelList
+                dataKey="value"
+                position="top"
+                fill="#E5E7EB"
+                fontSize={13}
+              />
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.isOver ? "#22c55e" : "#ef4444"}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
