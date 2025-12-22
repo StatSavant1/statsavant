@@ -14,6 +14,8 @@ type NBAPlayer = {
   updated_at: string | null;
 };
 
+const FREE_PREVIEW_PLAYERS = 5;
+
 /* =======================
    EST Date Helper
 ======================= */
@@ -47,9 +49,6 @@ function shuffle<T>(arr: T[]) {
   }
   return copy;
 }
-
-const FREE_PREVIEW_PLAYERS = 5;
-const PREVIEW_STORAGE_KEY = "nba_free_preview_players";
 
 export default function NBAPage() {
   const [players, setPlayers] = useState<NBAPlayer[]>([]);
@@ -156,57 +155,44 @@ export default function NBAPage() {
   }, [filteredPlayers]);
 
   /* =======================
-     Session-Locked Free Preview
+     UNIQUE PLAYERS (for preview selection)
   ======================= */
-  const freePreviewPlayerSet = useMemo(() => {
-    if (isSubscriber) return new Set<string>();
-
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem(PREVIEW_STORAGE_KEY);
-      if (stored) {
-        return new Set<string>(JSON.parse(stored));
-      }
-    }
-
+  const uniquePlayers = useMemo(() => {
     const seen = new Set<string>();
-    const selected: string[] = [];
-
-    for (const row of orderedPlayers) {
-      if (row.player && !seen.has(row.player)) {
-        seen.add(row.player);
-        selected.push(row.player);
-      }
-      if (selected.length === FREE_PREVIEW_PLAYERS) break;
-    }
-
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(
-        PREVIEW_STORAGE_KEY,
-        JSON.stringify(selected)
-      );
-    }
-
-    return new Set(selected);
-  }, [orderedPlayers, isSubscriber]);
+    return orderedPlayers.filter((p) => {
+      if (!p.player) return false;
+      if (seen.has(p.player)) return false;
+      seen.add(p.player);
+      return true;
+    });
+  }, [orderedPlayers]);
 
   /* =======================
-     Free vs Locked Split
+     Free vs Locked (HARD CAP = 5 CARDS)
   ======================= */
   const freePlayers = useMemo(() => {
-    return isSubscriber
-      ? orderedPlayers
-      : orderedPlayers.filter(
-          (p) => p.player && freePreviewPlayerSet.has(p.player)
-        );
-  }, [orderedPlayers, freePreviewPlayerSet, isSubscriber]);
+    if (isSubscriber) return orderedPlayers;
+
+    return orderedPlayers
+      .filter((p) =>
+        uniquePlayers
+          .slice(0, FREE_PREVIEW_PLAYERS)
+          .some((u) => u.player === p.player)
+      )
+      .slice(0, FREE_PREVIEW_PLAYERS);
+  }, [orderedPlayers, uniquePlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
-    return isSubscriber
-      ? []
-      : orderedPlayers.filter(
-          (p) => !p.player || !freePreviewPlayerSet.has(p.player)
-        );
-  }, [orderedPlayers, freePreviewPlayerSet, isSubscriber]);
+    if (isSubscriber) return [];
+
+    const freeSet = new Set(
+      freePlayers.map((p) => `${p.player}-${p.market}`)
+    );
+
+    return orderedPlayers.filter(
+      (p) => !freeSet.has(`${p.player}-${p.market}`)
+    );
+  }, [orderedPlayers, freePlayers, isSubscriber]);
 
   /* =======================
      Last Updated
@@ -221,7 +207,7 @@ export default function NBAPage() {
     return new Date(Math.max(...dates)).toLocaleString();
   }, [players]);
 
-  if (loading) {
+  if (loading || !authChecked) {
     return <div className="p-8 text-gray-400">Loading NBA data…</div>;
   }
 
@@ -247,9 +233,7 @@ export default function NBAPage() {
         {isPaywalled && (
           <div className="mt-4 bg-neutral-900 border border-neutral-700 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <p className="font-semibold">
-                You’re viewing the free preview.
-              </p>
+              <p className="font-semibold">You’re viewing the free preview.</p>
               <p className="text-gray-400 text-sm">
                 Subscribe to unlock full NBA access.
               </p>
@@ -257,7 +241,7 @@ export default function NBAPage() {
             <div className="flex gap-3">
               <Link
                 href="/subscribe"
-                className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl hover:bg-green-400 transition"
+                className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl"
               >
                 Subscribe
               </Link>
@@ -348,6 +332,7 @@ export default function NBAPage() {
     </div>
   );
 }
+
 
 
 
