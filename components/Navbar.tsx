@@ -48,9 +48,7 @@ export default function Navbar() {
         <ul className="hidden md:flex space-x-8 text-gray-300 items-center">
           <li><Link href="/nfl" className="hover:text-green-400 transition">NFL</Link></li>
           <li><Link href="/nba" className="hover:text-green-400 transition">NBA</Link></li>
-          <li><Link href="/nhl" className="hover:text-green-400 transition">NHL</Link></li>
-          <li><Link href="/pricing" className="hover:text-green-400 transition">Pricing</Link></li>
-
+         
           {user ? (
             <>
               <li>
@@ -113,11 +111,6 @@ export default function Navbar() {
       <li>
         <Link href="/nba" onClick={() => setMenuOpen(false)}>
           NBA
-        </Link>
-      </li>
-      <li>
-        <Link href="/pricing" onClick={() => setMenuOpen(false)}>
-          Pricing
         </Link>
       </li>
 
