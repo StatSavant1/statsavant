@@ -103,50 +103,64 @@ export default function Navbar() {
 
       {/* Mobile Dropdown */}
       {menuOpen && (
-        <ul className="md:hidden flex flex-col items-center space-y-4 pb-4 text-gray-300 border-t border-gray-800">
-          <li><Link href="/nfl" onClick={() => setMenuOpen(false)}>NFL</Link></li>
-          <li><Link href="/nba" onClick={() => setMenuOpen(false)}>NBA</Link></li>
-          <li><Link href="/nhl" onClick={() => setMenuOpen(false)}>NHL</Link></li>
-          <li><Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link></li>
+  <div className="fixed inset-x-0 top-[64px] z-[9999] bg-black border-t border-neutral-800 md:hidden">
+    <ul className="flex flex-col px-6 py-6 space-y-4 text-gray-300">
+      <li>
+        <Link href="/nfl" onClick={() => setMenuOpen(false)}>
+          NFL
+        </Link>
+      </li>
+      <li>
+        <Link href="/nba" onClick={() => setMenuOpen(false)}>
+          NBA
+        </Link>
+      </li>
+      <li>
+        <Link href="/pricing" onClick={() => setMenuOpen(false)}>
+          Pricing
+        </Link>
+      </li>
 
-          {user ? (
-            <>
-              <li>
-                <Link href="/account" onClick={() => setMenuOpen(false)}>
-                  Account
-                </Link>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    window.location.href = "/logout";
-                  }}
-                  className="text-gray-400 hover:text-white"
-                >
-                  Logout
-                </button>
-              </li>
-            </>
-          ) : (
-            <>
-              <li>
-                <Link href="/login" onClick={() => setMenuOpen(false)}>
-                  Login
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/signup"
-                  onClick={() => setMenuOpen(false)}
-                  className="bg-green-500 text-black font-bold px-6 py-2 rounded-xl"
-                >
-                  Sign Up
-                </Link>
-              </li>
-            </>
-          )}
-        </ul>
+      {user ? (
+        <>
+          <li>
+            <Link href="/account" onClick={() => setMenuOpen(false)}>
+              Account
+            </Link>
+          </li>
+          <li>
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                window.location.href = "/logout";
+              }}
+              className="text-left text-gray-300 hover:text-white"
+            >
+              Logout
+            </button>
+          </li>
+        </>
+      ) : (
+        <>
+          <li>
+            <Link href="/login" onClick={() => setMenuOpen(false)}>
+              Login
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/signup"
+              onClick={() => setMenuOpen(false)}
+              className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl text-center"
+            >
+              Sign Up
+            </Link>
+          </li>
+        </>
       )}
+    </ul>
+  </div>
+)}      
     </nav>
   );
 }
