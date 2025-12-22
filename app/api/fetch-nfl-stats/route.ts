@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseServerClient } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type PropRow = {
   player: string | null;
@@ -32,10 +32,11 @@ function normalizeName(name: string | null | undefined): string {
 }
 
 export async function GET() {
-  console.log("🔥 NFL API HIT");
+  console.log("🔥 NFL API HIT (ADMIN)");
 
   try {
-    const supabase = await supabaseServerClient();
+    // ✅ ADMIN CLIENT — bypasses RLS
+    const supabase = supabaseAdmin;
 
     // 1) Fetch prop lines
     const { data: props, error: propsErr } = await supabase
@@ -116,3 +117,4 @@ export async function GET() {
     );
   }
 }
+

@@ -1,22 +1,16 @@
-import "./globals.css";
-import Header from "@/components/Header";
+import Navbar from "@/components/Navbar";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white">
-        <Header />
-        <main>
-          {children}
-        </main>
+      <body>
+        <Navbar />
+        <main className="pt-[72px]">{children}</main>
       </body>
     </html>
   );
 }
+
 
 
 
