@@ -125,23 +125,29 @@ export default function NFLPage() {
   /* =======================
      Free vs Locked
   ======================= */
-  const freePlayers = useMemo(() => {
-    return isSubscriber
-      ? filteredPlayers
-      : filteredPlayers.filter((p) =>
-          uniquePlayers
-            .slice(0, FREE_PREVIEW_PLAYERS)
-            .some((u) => u.player === p.player)
-        );
-  }, [filteredPlayers, uniquePlayers, isSubscriber]);
+ const freePlayers = useMemo(() => {
+  if (isSubscriber) return filteredPlayers;
+
+  return filteredPlayers
+    .filter((p) =>
+      uniquePlayers
+        .slice(0, FREE_PREVIEW_PLAYERS)
+        .some((u) => u.player === p.player)
+    )
+    .slice(0, FREE_PREVIEW_PLAYERS); // 👈 HARD CARD CAP
+}, [filteredPlayers, uniquePlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
-    if (isSubscriber) return [];
-    const freeSet = new Set(
-      uniquePlayers.slice(0, FREE_PREVIEW_PLAYERS).map((p) => p.player)
-    );
-    return filteredPlayers.filter((p) => !freeSet.has(p.player));
-  }, [filteredPlayers, uniquePlayers, isSubscriber]);
+  if (isSubscriber) return [];
+
+  const freeSet = new Set(
+    freePlayers.map((p) => `${p.player}-${p.market}`)
+  );
+
+  return filteredPlayers.filter(
+    (p) => !freeSet.has(`${p.player}-${p.market}`)
+  );
+}, [filteredPlayers, freePlayers, isSubscriber]);
 
   /* =======================
      Last Updated
