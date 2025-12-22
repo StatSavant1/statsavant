@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseServerClient } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 /* =======================
    Types
@@ -62,10 +62,11 @@ function toNumber(val: number | string | null): number | null {
 ======================= */
 
 export async function GET() {
-  console.log("🔥 NBA API HIT");
+  console.log("🔥 NBA API HIT (ADMIN)");
 
   try {
-    const supabase = await supabaseServerClient();
+    // ✅ ADMIN CLIENT — bypasses RLS
+    const supabase = supabaseAdmin;
 
     // END OF TODAY (EST)
     const now = new Date();
@@ -171,6 +172,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
