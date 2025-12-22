@@ -65,31 +65,22 @@ export async function GET() {
   console.log("🔥 NBA API HIT (ADMIN)");
 
   try {
-    // ✅ ADMIN CLIENT — bypasses RLS
+    // ✅ ADMIN CLIENT (bypasses RLS)
     const supabase = supabaseAdmin;
 
-    // END OF TODAY (EST)
-    const now = new Date();
-    const estEndOfDay = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/New_York" })
-    );
-    estEndOfDay.setHours(23, 59, 59, 999);
-
     /* -----------------------
-       Pull TODAY'S NBA props
+       Pull ALL NBA props
+       (no date filtering)
     ----------------------- */
-
     const { data: props, error: propsErr } = await supabase
       .from("nba_player_props_latest")
-      .select("player, market, point, home_team, away_team, commence_time")
-      .lte("commence_time", estEndOfDay.toISOString());
+      .select("player, market, point, home_team, away_team, commence_time");
 
     if (propsErr) throw new Error(propsErr.message);
 
     /* -----------------------
        Pull recent stats
     ----------------------- */
-
     const { data: stats, error: statsErr } = await supabase
       .from("nba_recent_stats_all")
       .select("*");
@@ -100,6 +91,9 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
+    /* -----------------------
+       Build stats lookup
+    ----------------------- */
     const statsMap = new Map<string, StatRow>();
 
     for (const s of stats as StatRow[]) {
@@ -108,13 +102,17 @@ export async function GET() {
       statsMap.set(key, s);
     }
 
+    /* -----------------------
+       Deduplicate props
+    ----------------------- */
     const propMap = new Map<string, PropRow>();
 
     for (const p of props as PropRow[]) {
       if (!p.player || !p.market) continue;
-      const key = `${normalizeName(p.player)}-${normalizeMarket(p.market)}`;
 
+      const key = `${normalizeName(p.player)}-${normalizeMarket(p.market)}`;
       const existing = propMap.get(key);
+
       if (
         !existing ||
         (existing.commence_time &&
@@ -125,6 +123,9 @@ export async function GET() {
       }
     }
 
+    /* -----------------------
+       Merge props + stats
+    ----------------------- */
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
@@ -172,6 +173,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
