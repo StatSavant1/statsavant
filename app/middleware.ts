@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import type { NextRequest } from "next/server";
 
-export async function middleware(req: NextRequest) {
+export async function middleware(req: any) {
+  const pathname = req.nextUrl.pathname;
+
+  // 🚫 ABSOLUTE EXCLUSION
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
   const res = NextResponse.next();
 
   const supabase = createServerClient(
@@ -10,26 +16,27 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
+        get(name: string) {
           return req.cookies.get(name)?.value;
         },
-        set(name, value, options) {
+        set(name: string, value: string, options: any) {
           res.cookies.set(name, value, options);
         },
-        remove(name, options) {
+        remove(name: string, options: any) {
           res.cookies.delete(name);
         },
       },
     }
   );
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // 🔒 Only protect actual pages
+  const protectedRoutes = ["/nfl", "/nba", "/nhl"];
 
-  const protectedRoutes = ["/nfl/full", "/nba/full", "/nhl/full"];
+  if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-  if (protectedRoutes.some((route) => req.nextUrl.pathname.startsWith(route))) {
     if (!session?.user) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
@@ -48,19 +55,8 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-/**
- * 🔑 CRITICAL FIX
- * Exclude Stripe + API routes from Supabase middleware
- */
 export const config = {
-  matcher: [
-    // App pages ONLY
-    "/nfl/:path*",
-    "/nba/:path*",
-    "/nhl/:path*",
-
-    // ❌ EXCLUDE ALL API ROUTES
-    "!/api/:path*",
-  ],
+  matcher: ["/((?!_next|favicon.ico).*)"],
 };
+
 
