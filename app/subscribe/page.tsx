@@ -1,8 +1,34 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 
 export default function SubscribePage() {
+  const [loading, setLoading] = useState<string | null>(null);
+
+  async function startCheckout(plan: "founder" | "monthly" | "yearly") {
+    setLoading(plan);
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await res.json();
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Unable to start checkout. Please try again.");
+        setLoading(null);
+      }
+    } catch {
+      alert("Checkout failed. Please try again.");
+      setLoading(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black text-white px-6 py-16">
       <div className="max-w-6xl mx-auto text-center mb-14">
@@ -14,7 +40,6 @@ export default function SubscribePage() {
         </p>
       </div>
 
-      {/* Pricing Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
 
         {/* FOUNDERS PASS */}
@@ -28,8 +53,8 @@ export default function SubscribePage() {
             Lifetime price lock. First 100 members only.
           </p>
 
-          <div className="text-5xl font-bold mt-6">$9.99
-            <span className="text-xl font-normal">/mo</span>
+          <div className="text-5xl font-bold mt-6">
+            $9.99 <span className="text-xl font-normal">/mo</span>
           </div>
 
           <ul className="text-gray-300 text-sm mt-6 space-y-2">
@@ -41,12 +66,13 @@ export default function SubscribePage() {
             <li>✔ Lifetime locked pricing</li>
           </ul>
 
-          <a
-            href="/api/checkout?plan=founder"
-            className="mt-auto bg-green-500 text-black text-center font-bold py-3 rounded-xl hover:bg-green-400 transition"
+          <button
+            onClick={() => startCheckout("founder")}
+            disabled={loading !== null}
+            className="mt-auto bg-green-500 text-black font-bold py-3 rounded-xl hover:bg-green-400 transition disabled:opacity-50"
           >
-            Become a Founder
-          </a>
+            {loading === "founder" ? "Redirecting…" : "Become a Founder"}
+          </button>
         </div>
 
         {/* PREMIUM MONTHLY */}
@@ -56,8 +82,8 @@ export default function SubscribePage() {
             Full access. Cancel anytime.
           </p>
 
-          <div className="text-5xl font-bold mt-6">$14.99
-            <span className="text-xl font-normal">/mo</span>
+          <div className="text-5xl font-bold mt-6">
+            $14.99 <span className="text-xl font-normal">/mo</span>
           </div>
 
           <ul className="text-gray-300 text-sm mt-6 space-y-2">
@@ -68,12 +94,13 @@ export default function SubscribePage() {
             <li>✔ Full chart access</li>
           </ul>
 
-          <a
-            href="/api/checkout?plan=monthly"
-            className="mt-auto bg-white text-black text-center font-bold py-3 rounded-xl hover:bg-gray-200 transition"
+          <button
+            onClick={() => startCheckout("monthly")}
+            disabled={loading !== null}
+            className="mt-auto bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition disabled:opacity-50"
           >
-            Start Monthly
-          </a>
+            {loading === "monthly" ? "Redirecting…" : "Start Monthly"}
+          </button>
         </div>
 
         {/* PREMIUM ANNUAL */}
@@ -83,8 +110,8 @@ export default function SubscribePage() {
             Save 45%
           </p>
 
-          <div className="text-5xl font-bold mt-6">$149.99
-            <span className="text-xl font-normal">/yr</span>
+          <div className="text-5xl font-bold mt-6">
+            $149.99 <span className="text-xl font-normal">/yr</span>
           </div>
 
           <ul className="text-gray-300 text-sm mt-6 space-y-2">
@@ -94,16 +121,18 @@ export default function SubscribePage() {
             <li>✔ No price increases</li>
           </ul>
 
-          <a
-            href="/api/checkout?plan=yearly"
-            className="mt-auto bg-white text-black text-center font-bold py-3 rounded-xl hover:bg-gray-200 transition"
+          <button
+            onClick={() => startCheckout("yearly")}
+            disabled={loading !== null}
+            className="mt-auto bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition disabled:opacity-50"
           >
-            Start Yearly
-          </a>
+            {loading === "yearly" ? "Redirecting…" : "Start Yearly"}
+          </button>
         </div>
 
       </div>
     </div>
   );
 }
+
 
