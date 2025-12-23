@@ -1,29 +1,28 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import type { NextRequest } from "next/server";
 
-export async function middleware(req: any) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
-  // Create Supabase client inside middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
+        get(name) {
           return req.cookies.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
+        set(name, value, options) {
           res.cookies.set(name, value, options);
         },
-        remove(name: string, options: any) {
+        remove(name, options) {
           res.cookies.delete(name);
         },
       },
     }
   );
 
-  // Get user session
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -49,7 +48,20 @@ export async function middleware(req: any) {
   return res;
 }
 
+/**
+ * 🔑 CRITICAL FIX
+ * Exclude Stripe + API routes from Supabase middleware
+ */
 export const config = {
-  matcher: ["/nfl/:path*", "/nba/:path*", "/nhl/:path*"],
+  matcher: [
+    /*
+      Run middleware on everything EXCEPT:
+      - api routes
+      - checkout
+      - stripe webhooks
+      - static assets
+    */
+    "/((?!api/checkout|api/stripe-webhook|api/|_next|favicon.ico).*)",
+  ],
 };
 
