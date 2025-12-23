@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+export const runtime = "nodejs"; // 🔥 REQUIRED
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-10-29.clover",
+});
+
 const PRICE_MAP = {
   founder: process.env.STRIPE_PRICE_FOUNDER!,
   monthly: process.env.STRIPE_PRICE_MONTHLY!,
@@ -12,14 +18,13 @@ export async function POST(req: Request) {
     const { plan } = await req.json();
 
     const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
-    if (!priceId) {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-    }
 
-    // ✅ Initialize Stripe INSIDE the handler (build-safe)
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2025-10-29.clover",
-    });
+    if (!priceId) {
+      return NextResponse.json(
+        { error: `Invalid plan or missing price: ${plan}` },
+        { status: 400 }
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -38,6 +43,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
 
 
