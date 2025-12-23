@@ -1,7 +1,12 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-const supabaseAdmin = getSupabaseAdmin();
+/* =======================
+   Types
+======================= */
 
 type PropRow = {
   player: string | null;
@@ -24,6 +29,10 @@ type StatRow = {
   updated_at?: string | null;
 };
 
+/* =======================
+   Helpers
+======================= */
+
 function normalizeName(name: string | null | undefined): string {
   if (!name) return "";
   return name
@@ -33,12 +42,16 @@ function normalizeName(name: string | null | undefined): string {
     .trim();
 }
 
+/* =======================
+   API Handler
+======================= */
+
 export async function GET() {
   console.log("🔥 NFL API HIT (ADMIN)");
 
   try {
-    // ✅ ADMIN CLIENT — bypasses RLS
-    const supabase = supabaseAdmin;
+    // ✅ CREATE ADMIN CLIENT AT RUNTIME (THIS IS THE FIX)
+    const supabase = getSupabaseAdmin();
 
     // 1) Fetch prop lines
     const { data: props, error: propsErr } = await supabase
@@ -62,38 +75,30 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
-    const propsTyped = props as PropRow[];
+    const propMap = new Map<string, PropRow>();
     const statsTyped = stats as StatRow[];
 
-    // 3) Deduplicate props by player + market
-    const propMap = new Map<string, PropRow>();
-
-    for (const prop of propsTyped) {
-      const normalizedPlayer = normalizeName(prop.player);
-      const key = `${normalizedPlayer}-${prop.market}`;
-
+    // Deduplicate props by player + market
+    for (const prop of props as PropRow[]) {
+      const key = `${normalizeName(prop.player)}-${prop.market}`;
       if (!propMap.has(key)) {
         propMap.set(key, prop);
       }
     }
 
-    // 4) Merge props + stats
+    // Merge props + stats
     const merged = Array.from(propMap.values()).map((prop) => {
-      const normalizedPlayer = normalizeName(prop.player);
-
       const stat = statsTyped.find(
         (s) =>
-          normalizeName(s.player) === normalizedPlayer &&
+          normalizeName(s.player) === normalizeName(prop.player) &&
           s.market === prop.market
       );
 
-      const raw = stat
-        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
+      const last_five = stat
+        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5].filter(
+            (v): v is number => typeof v === "number"
+          )
         : [];
-
-      const last_five = raw.filter(
-        (v): v is number => typeof v === "number"
-      );
 
       return {
         player: prop.player,
@@ -119,4 +124,5 @@ export async function GET() {
     );
   }
 }
+
 
