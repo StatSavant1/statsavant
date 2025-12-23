@@ -60,29 +60,31 @@ function toNumber(val: number | string | null): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
+function toDateMs(iso: string | null): number {
+  if (!iso) return 0;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? 0 : t;
+}
+
 /* =======================
    API Handler
 ======================= */
 
 export async function GET() {
-  console.log("🔥 NBA API HIT (ADMIN)");
+  console.log("🔥 NBA API HIT");
 
   try {
-    // ✅ CREATE ADMIN CLIENT AT RUNTIME (THIS IS THE KEY)
+    // ✅ Create admin client at runtime
     const supabase = getSupabaseAdmin();
 
-    /* -----------------------
-       Pull ALL NBA props
-    ----------------------- */
+    // 1) Pull props
     const { data: props, error: propsErr } = await supabase
       .from("nba_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
     if (propsErr) throw new Error(propsErr.message);
 
-    /* -----------------------
-       Pull recent stats
-    ----------------------- */
+    // 2) Pull stats
     const { data: stats, error: statsErr } = await supabase
       .from("nba_recent_stats_all")
       .select("*");
@@ -93,20 +95,15 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
-    /* -----------------------
-       Build stats lookup
-    ----------------------- */
+    // 3) Build stats lookup map
     const statsMap = new Map<string, StatRow>();
-
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
       const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
       statsMap.set(key, s);
     }
 
-    /* -----------------------
-       Deduplicate props
-    ----------------------- */
+    // 4) Deduplicate props (latest commence_time wins)
     const propMap = new Map<string, PropRow>();
 
     for (const p of props as PropRow[]) {
@@ -115,19 +112,18 @@ export async function GET() {
       const key = `${normalizeName(p.player)}-${normalizeMarket(p.market)}`;
       const existing = propMap.get(key);
 
-      if (
-        !existing ||
-        (existing.commence_time &&
-          p.commence_time &&
-          new Date(p.commence_time) > new Date(existing.commence_time))
-      ) {
+      if (!existing) {
+        propMap.set(key, p);
+        continue;
+      }
+
+      // Compare dates safely
+      if (toDateMs(p.commence_time) > toDateMs(existing.commence_time)) {
         propMap.set(key, p);
       }
     }
 
-    /* -----------------------
-       Merge props + stats
-    ----------------------- */
+    // 5) Merge props + stats
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
@@ -156,7 +152,7 @@ export async function GET() {
         market,
         line: typeof prop.point === "number" ? prop.point : null,
         last_ten,
-        avg_l10: toNumber(stat?.avg_l10),
+        avg_l10: toNumber(stat?.avg_l10 ?? null),
         updated_at: stat?.updated_at ?? null,
         home_team: prop.home_team,
         away_team: prop.away_team,
@@ -165,16 +161,16 @@ export async function GET() {
     });
 
     console.log("✅ NBA MERGED COUNT:", merged.length);
-
     return NextResponse.json({ success: true, stats: merged });
   } catch (err: any) {
-    console.error("💥 NBA API ERROR:", err);
+    console.error("💥 NBA API ERROR:", err?.message || err);
     return NextResponse.json(
       { success: false, error: err?.message || "Server error" },
       { status: 500 }
     );
   }
 }
+
 
 
 
