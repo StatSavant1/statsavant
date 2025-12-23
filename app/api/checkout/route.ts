@@ -13,6 +13,13 @@ export async function POST(req: Request) {
   try {
     const { plan } = await req.json();
 
+        console.log("CHECKOUT PLAN RECEIVED:", plan);
+    console.log("STRIPE PRICE ENV VARS:", {
+      founder: process.env.STRIPE_PRICE_FOUNDER,
+      monthly: process.env.STRIPE_PRICE_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_YEARLY,
+    });
+
     const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
     if (!priceId) {
       return NextResponse.json(
