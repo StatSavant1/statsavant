@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+const supabaseAdmin = getSupabaseAdmin();
 
 type PropRow = {
   player: string | null;

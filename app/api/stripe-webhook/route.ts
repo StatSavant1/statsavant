@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = req.headers.get("stripe-signature")!;
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
 
-  let event;
+export async function POST(req: Request) {
+  const body = await req.text();
+  const signature = req.headers.get("stripe-signature");
+
+  if (!signature) {
+    return new Response("Missing Stripe signature", { status: 400 });
+  }
+
+  let event: Stripe.Event;
+
   try {
     event = stripe.webhooks.constructEvent(
       body,
@@ -21,25 +26,29 @@ export async function POST(req: Request) {
     return new Response(`Webhook error: ${err.message}`, { status: 400 });
   }
 
-  // Subscription Activated
-  if (event.type === "checkout.session.completed") {
-    const session: any = event.data.object;
+  const supabase = getSupabaseAdmin();
 
-    await supabaseAdmin
-      .from("profiles")
-      .update({
-        subscription_status: "active",
-        stripe_subscription_id: session.subscription,
-        plan_type: session.metadata.plan_type,
-      })
-      .eq("id", session.metadata.user_id);
+  // ✅ Subscription created
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    if (session.subscription && session.metadata?.user_id) {
+      await supabase
+        .from("profiles")
+        .update({
+          subscription_status: "active",
+          stripe_subscription_id: session.subscription,
+          plan_type: session.metadata.plan_type,
+        })
+        .eq("id", session.metadata.user_id);
+    }
   }
 
-  // Subscription Canceled
+  // ❌ Subscription canceled
   if (event.type === "customer.subscription.deleted") {
-    const subscription: any = event.data.object;
+    const subscription = event.data.object as Stripe.Subscription;
 
-    await supabaseAdmin
+    await supabase
       .from("profiles")
       .update({
         subscription_status: "inactive",
@@ -49,6 +58,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ received: true });
 }
+
 
 
 
