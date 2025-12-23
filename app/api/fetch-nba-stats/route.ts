@@ -1,7 +1,8 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-
-const supabaseAdmin = getSupabaseAdmin();
 
 /* =======================
    Types
@@ -67,12 +68,11 @@ export async function GET() {
   console.log("🔥 NBA API HIT (ADMIN)");
 
   try {
-    // ✅ ADMIN CLIENT (bypasses RLS)
-    const supabase = supabaseAdmin;
+    // ✅ CREATE ADMIN CLIENT AT RUNTIME (THIS IS THE KEY)
+    const supabase = getSupabaseAdmin();
 
     /* -----------------------
        Pull ALL NBA props
-       (no date filtering)
     ----------------------- */
     const { data: props, error: propsErr } = await supabase
       .from("nba_player_props_latest")
@@ -175,6 +175,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
