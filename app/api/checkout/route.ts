@@ -4,10 +4,6 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-10-29.clover",
-});
-
 const PRICE_MAP = {
   founder: process.env.STRIPE_PRICE_FOUNDER!,
   monthly: process.env.STRIPE_PRICE_MONTHLY!,
@@ -19,13 +15,17 @@ export async function POST(req: Request) {
     const { plan } = await req.json();
 
     const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
-
     if (!priceId) {
       return NextResponse.json(
         { error: `Invalid plan: ${plan}` },
         { status: 400 }
       );
     }
+
+    // ✅ Stripe created INSIDE handler (runtime only)
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2025-10-29.clover",
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
 
 
