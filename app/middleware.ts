@@ -54,14 +54,13 @@ export async function middleware(req: NextRequest) {
  */
 export const config = {
   matcher: [
-    /*
-      Run middleware on everything EXCEPT:
-      - api routes
-      - checkout
-      - stripe webhooks
-      - static assets
-    */
-    "/((?!api/checkout|api/stripe-webhook|api/|_next|favicon.ico).*)",
+    // App pages ONLY
+    "/nfl/:path*",
+    "/nba/:path*",
+    "/nhl/:path*",
+
+    // ❌ EXCLUDE ALL API ROUTES
+    "!/api/:path*",
   ],
 };
 
