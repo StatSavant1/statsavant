@@ -4,22 +4,21 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-10-29.clover",
+});
+
+const PRICE_MAP = {
+  founder: process.env.STRIPE_PRICE_FOUNDER!,
+  monthly: process.env.STRIPE_PRICE_MONTHLY!,
+  yearly: process.env.STRIPE_PRICE_YEARLY!,
+};
+
 export async function POST(req: Request) {
   try {
-    // ✅ Stripe initialized INSIDE handler (critical)
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-      apiVersion: "2025-10-29.clover",
-    });
-
     const { plan } = await req.json();
 
-    const PRICE_MAP: Record<string, string | undefined> = {
-      founder: process.env.STRIPE_PRICE_FOUNDER,
-      monthly: process.env.STRIPE_PRICE_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_YEARLY,
-    };
-
-    const priceId = PRICE_MAP[plan];
+    const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
 
     if (!priceId) {
       return NextResponse.json(
@@ -37,10 +36,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
-    console.error("💥 CHECKOUT ERROR:", err);
+  } catch (err) {
+    console.error("Checkout error:", err);
     return NextResponse.json(
-      { error: err.message || "Checkout failed" },
+      { error: "Checkout failed" },
       { status: 500 }
     );
   }
