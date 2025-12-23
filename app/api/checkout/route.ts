@@ -5,18 +5,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
 
+const PRICE_MAP = {
+  founder: process.env.STRIPE_PRICE_FOUNDER!,
+  monthly: process.env.STRIPE_PRICE_MONTHLY!,
+  yearly: process.env.STRIPE_PRICE_YEARLY!,
+};
+
 export async function POST(req: Request) {
   try {
     const { plan } = await req.json();
 
-    const priceMap: Record<string, string | undefined> = {
-      founder: process.env.STRIPE_PRICE_FOUNDER,
-      monthly: process.env.STRIPE_PRICE_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_YEARLY,
-    };
-
-    const priceId = priceMap[plan];
-
+    const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
     if (!priceId) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
@@ -25,19 +24,20 @@ export async function POST(req: Request) {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/subscribe`,
-      metadata: {
-        plan_type: plan,
-      },
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/subscribe?canceled=true`,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
-    console.error("CHECKOUT ERROR:", err);
-    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
+    console.error("Checkout error:", err);
+    return NextResponse.json(
+      { error: "Checkout failed" },
+      { status: 500 }
+    );
   }
 }
+
 
 
 
