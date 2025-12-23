@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -13,10 +16,8 @@ const PRICE_MAP = {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const plan = body.plan as keyof typeof PRICE_MAP;
-
-    const priceId = PRICE_MAP[plan];
+    const { plan } = await req.json();
+    const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
 
     if (!priceId) {
       return NextResponse.json(
@@ -27,26 +28,18 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/subscribe?canceled=true`,
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error("Stripe checkout error:", error);
-    return NextResponse.json(
-      { error: "Checkout failed" },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error("Checkout error:", err);
+    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
   }
 }
+
 
 
 
