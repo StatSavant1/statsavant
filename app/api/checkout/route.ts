@@ -4,27 +4,49 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+/* =======================
+   Price Map
+======================= */
+
+const PRICE_MAP = {
+  founder: process.env.STRIPE_PRICE_FOUNDER,
+  monthly: process.env.STRIPE_PRICE_MONTHLY,
+  yearly: process.env.STRIPE_PRICE_YEARLY,
+};
+
+/* =======================
+   API Handler
+======================= */
+
 export async function POST(req: Request) {
   try {
     const { plan } = await req.json();
 
-    // ✅ READ ENV VARS AT RUNTIME
-    const PRICE_MAP: Record<string, string | undefined> = {
+    // 🔍 DEBUG: confirm plan value
+    console.log("🧪 PLAN DEBUG:", plan);
+
+    // 🔍 DEBUG: confirm env vars at runtime
+    console.log("🧪 PRICE_MAP DEBUG:", {
       founder: process.env.STRIPE_PRICE_FOUNDER,
       monthly: process.env.STRIPE_PRICE_MONTHLY,
       yearly: process.env.STRIPE_PRICE_YEARLY,
-    };
+    });
 
-    const priceId = PRICE_MAP[plan];
+    const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
 
     if (!priceId) {
-      console.error("❌ Missing priceId for plan:", plan, PRICE_MAP);
+      console.error("❌ INVALID PLAN OR PRICE ID", {
+        plan,
+        priceMap: PRICE_MAP,
+      });
+
       return NextResponse.json(
         { error: `Invalid plan: ${plan}` },
         { status: 400 }
       );
     }
 
+    // ✅ Stripe initialized at runtime
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2025-10-29.clover",
     });
@@ -38,13 +60,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("💥 Checkout error:", err);
+    console.error("💥 CHECKOUT ERROR:", err);
+
     return NextResponse.json(
-      { error: err.message || "Checkout failed" },
+      { error: err?.message || "Checkout failed" },
       { status: 500 }
     );
   }
 }
+
 
 
 
