@@ -125,7 +125,7 @@ export default function SubscribePage() {
             <ul className="space-y-2 text-sm text-gray-300 mb-8">
               <li>✔ All monthly features</li>
               <li>✔ Best value plan</li>
-              <li>✔ Save 45% yearly</li>
+              <li>✔ Save 16% yearly</li>
               <li>✔ No price increases</li>
             </ul>
 
