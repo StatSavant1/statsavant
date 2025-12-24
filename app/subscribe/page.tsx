@@ -115,7 +115,7 @@ export default function SubscribePage() {
           {/* Yearly */}
           <div className="rounded-xl p-8 bg-zinc-900 border border-zinc-800">
             <h2 className="text-2xl font-bold mb-2">Premium Annual</h2>
-            <p className="text-sm text-green-400 mb-6">Save 45%</p>
+            <p className="text-sm text-green-400 mb-6">Save 16%</p>
 
             <div className="text-4xl font-bold mb-6">
               $149.99{" "}
