@@ -22,28 +22,28 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Stripe created INSIDE handler (runtime only)
+    // ✅ Stripe initialized AT RUNTIME (this is the key)
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2025-10-29.clover",
     });
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/subscribe?canceled=true`,
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Checkout error:", err);
     return NextResponse.json(
-      { error: "Checkout failed" },
+      { error: err.message || "Checkout failed" },
       { status: 500 }
     );
   }
 }
+
 
 
 
