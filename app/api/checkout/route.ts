@@ -4,17 +4,44 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+/* =======================
+   Price Map
+======================= */
+
 const PRICE_MAP = {
-  founder: process.env.STRIPE_PRICE_FOUNDER!,
-  monthly: process.env.STRIPE_PRICE_MONTHLY!,
-  yearly: process.env.STRIPE_PRICE_YEARLY!,
+  founder: process.env.STRIPE_PRICE_FOUNDER,
+  monthly: process.env.STRIPE_PRICE_MONTHLY,
+  yearly: process.env.STRIPE_PRICE_YEARLY,
 };
+
+/* =======================
+   API Handler
+======================= */
 
 export async function POST(req: Request) {
   try {
-    const { plan } = await req.json();
+    const body = await req.json();
+    const plan = body?.plan;
+
+    // 🔍 RUNTIME DEBUG (do NOT remove yet)
+    console.log("🧾 Checkout plan received:", plan);
+    console.log("💳 Stripe price env check:", {
+      founder: process.env.STRIPE_PRICE_FOUNDER,
+      monthly: process.env.STRIPE_PRICE_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_YEARLY,
+    });
+
+    if (!plan || typeof plan !== "string") {
+      return NextResponse.json(
+        { error: "Missing or invalid plan" },
+        { status: 400 }
+      );
+    }
 
     const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
+
+    console.log("✅ Resolved Stripe price ID:", priceId);
+
     if (!priceId) {
       return NextResponse.json(
         { error: `Invalid plan: ${plan}` },
@@ -22,7 +49,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Stripe initialized AT RUNTIME (this is the key)
+    // ✅ Stripe initialized ONLY at runtime
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2025-10-29.clover",
     });
@@ -36,9 +63,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Checkout error:", err);
+    console.error("💥 Checkout route error:", err);
     return NextResponse.json(
-      { error: err.message || "Checkout failed" },
+      { error: err?.message || "Checkout failed" },
       { status: 500 }
     );
   }
