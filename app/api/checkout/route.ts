@@ -4,33 +4,20 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-/* =======================
-   Price Map
-======================= */
-
+// 🔒 Price map (must match env vars exactly)
 const PRICE_MAP = {
   founder: process.env.STRIPE_PRICE_FOUNDER,
   monthly: process.env.STRIPE_PRICE_MONTHLY,
   yearly: process.env.STRIPE_PRICE_YEARLY,
 };
 
-/* =======================
-   API Handler
-======================= */
-
 export async function POST(req: Request) {
   try {
     const { plan } = await req.json();
 
-    // 🔍 DEBUG: confirm plan value
+    // 🧪 DEBUG — REMOVE AFTER CONFIRMED WORKING
     console.log("🧪 PLAN DEBUG:", plan);
-
-    // 🔍 DEBUG: confirm env vars at runtime
-    console.log("🧪 PRICE_MAP DEBUG:", {
-      founder: process.env.STRIPE_PRICE_FOUNDER,
-      monthly: process.env.STRIPE_PRICE_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_YEARLY,
-    });
+    console.log("🧪 PRICE_MAP DEBUG:", PRICE_MAP);
 
     const priceId = PRICE_MAP[plan as keyof typeof PRICE_MAP];
 
@@ -46,14 +33,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Stripe initialized at runtime
+    // ✅ Initialize Stripe AT RUNTIME (prevents build crashes)
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2025-10-29.clover",
     });
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/subscribe?canceled=true`,
     });
@@ -68,6 +61,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
 
 
