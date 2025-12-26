@@ -136,11 +136,11 @@ export async function GET() {
       const key = `${normalizeName(player)}-${market}`;
       const stat = statsMap.get(key);
 
-      const last_five = stat
-        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
-            .map(toNumber)
-            .filter((v): v is number => v !== null)
-        : [];
+   const last_five = stat
+  ? [stat.g5, stat.g4, stat.g3, stat.g2, stat.g1]
+      .map(toNumber)
+      .filter((v): v is number => v !== null)
+  : [];
 
       return {
         player,
