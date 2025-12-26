@@ -137,11 +137,22 @@ export async function GET() {
       const key = `${normalizeName(player)}-${market}`;
       const stat = statsMap.get(key);
 
-      const last_five = stat
-        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
-            .map(toNumber)
-            .filter((v): v is number => v !== null)
-        : [];
+     const rawGames = stat
+  ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
+  : [];
+
+const last_five = rawGames
+  .map(toNumber)
+  .filter((v): v is number => v !== null);
+
+// Optional debug (temporary)
+if (stat && last_five.length === 0) {
+  console.log("⚠️ STAT ROW WITH NO NUMERIC GAMES:", {
+    player,
+    market,
+    rawGames,
+  });
+}
 
       return {
         player,
