@@ -48,29 +48,43 @@ export default function NFLPage() {
 
   /* =======================
      Auth + Subscription
+     (NON-BLOCKING, SAFE)
   ======================= */
   useEffect(() => {
     const supabase = supabaseBrowserClient();
 
     async function checkSub() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-      if (!user) {
+        if (error || !user) {
+          setIsSubscriber(false);
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("subscription_status")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          setIsSubscriber(false);
+          return;
+        }
+
+        setIsSubscriber(profile?.subscription_status === "active");
+      } catch (err) {
+        console.error("Auth check failed:", err);
         setIsSubscriber(false);
+      } finally {
+        // 👈 CRITICAL: NEVER BLOCK UI
         setAuthChecked(true);
-        return;
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_status")
-        .eq("id", user.id)
-        .single();
-
-      setIsSubscriber(profile?.subscription_status === "active");
-      setAuthChecked(true);
     }
 
     checkSub();
@@ -224,7 +238,7 @@ export default function NFLPage() {
         />
       </div>
 
-      {/* FREE PREVIEW GRID */}
+      {/* FREE PREVIEW */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {freePlayers.map((p, idx) => (
           <PlayerCard
@@ -270,6 +284,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 

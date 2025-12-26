@@ -49,6 +49,17 @@ function normalizeMarket(market: string | null): string {
   return market ? market.toLowerCase().trim() : "";
 }
 
+/**
+ * 🔑 Map prop markets → stats markets
+ * This fixes rush/rec stats not attaching
+ */
+function resolveStatMarket(propMarket: string): string {
+  if (propMarket.includes("pass")) return "passing_yds";
+  if (propMarket.includes("rush")) return "rushing_yds";
+  if (propMarket.includes("reception")) return "receiving_yds";
+  return propMarket;
+}
+
 function toNumber(val: number | string | null): number | null {
   if (val === null || val === undefined) return null;
   const n = Number(val);
@@ -69,7 +80,6 @@ export async function GET() {
   console.log("🔥 NFL API HIT");
 
   try {
-    // ✅ Create admin client at runtime (prevents build crashes)
     const supabase = getSupabaseAdmin();
 
     /* -----------------------
@@ -101,6 +111,7 @@ export async function GET() {
 
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
+
       const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
       statsMap.set(key, s);
     }
@@ -132,19 +143,21 @@ export async function GET() {
     ----------------------- */
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
-      const market = normalizeMarket(prop.market);
-      const key = `${normalizeName(player)}-${market}`;
+      const propMarket = normalizeMarket(prop.market);
+      const statMarket = resolveStatMarket(propMarket);
+
+      const key = `${normalizeName(player)}-${statMarket}`;
       const stat = statsMap.get(key);
 
- const last_five = stat
-  ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
-      .map(toNumber)
-      .filter((v): v is number => v !== null)
-  : [];
+      const last_five = stat
+        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
+            .map(toNumber)
+            .filter((v): v is number => v !== null)
+        : [];
 
       return {
         player,
-        market,
+        market: propMarket,
         line: typeof prop.point === "number" ? prop.point : null,
         last_five,
         avg_l5: toNumber(stat?.avg_l5 ?? null),
@@ -166,6 +179,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
