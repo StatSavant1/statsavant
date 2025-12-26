@@ -47,20 +47,40 @@ export default function NFLPage() {
   const [authChecked, setAuthChecked] = useState(false);
 
   /* =======================
-     Auth + Subscription
-     (NON-BLOCKING, SAFE)
+     AUTH (COOKIE-SAFE)
+     - Timeout protected
+     - Auto-heals corrupted sessions
+     - Never blocks UI
   ======================= */
   useEffect(() => {
     const supabase = supabaseBrowserClient();
+    let cancelled = false;
+
+    const AUTH_TIMEOUT_MS = 3000;
+
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("⚠️ Auth timeout — rendering as logged out");
+        setIsSubscriber(false);
+        setAuthChecked(true);
+      }
+    }, AUTH_TIMEOUT_MS);
 
     async function checkSub() {
       try {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
+        const { data, error } = await supabase.auth.getSession();
 
-        if (error || !user) {
+        if (cancelled) return;
+
+        if (error) {
+          console.error("Auth session error:", error);
+          await supabase.auth.signOut(); // auto-heal
+          setIsSubscriber(false);
+          return;
+        }
+
+        const user = data.session?.user;
+        if (!user) {
           setIsSubscriber(false);
           return;
         }
@@ -80,14 +100,45 @@ export default function NFLPage() {
         setIsSubscriber(profile?.subscription_status === "active");
       } catch (err) {
         console.error("Auth check failed:", err);
+        try {
+          await supabase.auth.signOut();
+        } catch {}
         setIsSubscriber(false);
       } finally {
-        // 👈 CRITICAL: NEVER BLOCK UI
-        setAuthChecked(true);
+        if (!cancelled) {
+          clearTimeout(timeoutId);
+          setAuthChecked(true);
+        }
       }
     }
 
     checkSub();
+
+    // Listen for auth changes (refresh, login, logout)
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (cancelled) return;
+
+        if (!session?.user) {
+          setIsSubscriber(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscription_status")
+          .eq("id", session.user.id)
+          .single();
+
+        setIsSubscriber(profile?.subscription_status === "active");
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   /* =======================
@@ -284,6 +335,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
