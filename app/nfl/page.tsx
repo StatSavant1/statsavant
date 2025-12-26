@@ -24,6 +24,8 @@ function isTodayOrFuture(commenceTime: string | null): boolean {
   if (!commenceTime) return false;
 
   const gameTime = new Date(commenceTime);
+  if (isNaN(gameTime.getTime())) return false;
+
   const now = new Date();
   const estToday = new Date(
     now.toLocaleString("en-US", { timeZone: "America/New_York" })
@@ -104,50 +106,33 @@ export default function NFLPage() {
     return players
       .filter((p) => p.player && p.market)
       .filter((p) => isTodayOrFuture(p.commence_time))
-      .filter((p) => (marketFilter === "all" ? true : p.market === marketFilter))
+      .filter((p) =>
+        marketFilter === "all" ? true : p.market === marketFilter
+      )
       .filter((p) =>
         p.player.toLowerCase().includes(search.toLowerCase())
       );
   }, [players, marketFilter, search]);
 
   /* =======================
-     UNIQUE PLAYERS (ORDERED)
+     Free vs Locked (CARD-BASED)
   ======================= */
-  const uniquePlayers = useMemo(() => {
-    const seen = new Set<string>();
-    return filteredPlayers.filter((p) => {
-      if (seen.has(p.player)) return false;
-      seen.add(p.player);
-      return true;
-    });
-  }, [filteredPlayers]);
-
-  /* =======================
-     Free vs Locked
-  ======================= */
- const freePlayers = useMemo(() => {
-  if (isSubscriber) return filteredPlayers;
-
-  return filteredPlayers
-    .filter((p) =>
-      uniquePlayers
-        .slice(0, FREE_PREVIEW_PLAYERS)
-        .some((u) => u.player === p.player)
-    )
-    .slice(0, FREE_PREVIEW_PLAYERS); // 👈 HARD CARD CAP
-}, [filteredPlayers, uniquePlayers, isSubscriber]);
+  const freePlayers = useMemo(() => {
+    if (isSubscriber) return filteredPlayers;
+    return filteredPlayers.slice(0, FREE_PREVIEW_PLAYERS);
+  }, [filteredPlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
-  if (isSubscriber) return [];
+    if (isSubscriber) return [];
 
-  const freeSet = new Set(
-    freePlayers.map((p) => `${p.player}-${p.market}`)
-  );
+    const freeSet = new Set(
+      freePlayers.map((p) => `${p.player}-${p.market}`)
+    );
 
-  return filteredPlayers.filter(
-    (p) => !freeSet.has(`${p.player}-${p.market}`)
-  );
-}, [filteredPlayers, freePlayers, isSubscriber]);
+    return filteredPlayers.filter(
+      (p) => !freeSet.has(`${p.player}-${p.market}`)
+    );
+  }, [filteredPlayers, freePlayers, isSubscriber]);
 
   /* =======================
      Last Updated
@@ -182,6 +167,7 @@ export default function NFLPage() {
         <h1 className="text-3xl font-bold text-green-400">
           NFL Player Prop Trends
         </h1>
+
         {lastUpdated && (
           <p className="text-sm text-gray-400 mt-1">
             Last Updated: {lastUpdated}
@@ -259,15 +245,15 @@ export default function NFLPage() {
           {lockedPlayers.map((p, idx) => (
             <div key={idx} className="relative mb-6 break-inside-avoid">
               <div className="blur-md pointer-events-none">
-  <PlayerCard
-    player={p.player}
-    market={p.market}
-    line={p.line}
-    lastGames={p.last_five}
-    avg={p.avg_l5}
-    windowLabel="L5"
-  />
-</div>
+                <PlayerCard
+                  player={p.player}
+                  market={p.market}
+                  line={p.line}
+                  lastGames={p.last_five}
+                  avg={p.avg_l5}
+                  windowLabel="L5"
+                />
+              </div>
 
               <div className="absolute inset-0 flex items-center justify-center">
                 <Link
@@ -284,6 +270,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
