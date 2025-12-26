@@ -49,17 +49,6 @@ function normalizeMarket(market: string | null): string {
   return market ? market.toLowerCase().trim() : "";
 }
 
-/**
- * 🔑 Map prop markets → stats markets
- * This fixes rush/rec stats not attaching
- */
-function resolveStatMarket(propMarket: string): string {
-  if (propMarket.includes("pass")) return "passing_yds";
-  if (propMarket.includes("rush")) return "rushing_yds";
-  if (propMarket.includes("reception")) return "receiving_yds";
-  return propMarket;
-}
-
 function toNumber(val: number | string | null): number | null {
   if (val === null || val === undefined) return null;
   const n = Number(val);
@@ -143,10 +132,9 @@ export async function GET() {
     ----------------------- */
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
-      const propMarket = normalizeMarket(prop.market);
-      const statMarket = resolveStatMarket(propMarket);
+      const market = normalizeMarket(prop.market);
 
-      const key = `${normalizeName(player)}-${statMarket}`;
+      const key = `${normalizeName(player)}-${market}`;
       const stat = statsMap.get(key);
 
       const last_five = stat
@@ -157,7 +145,7 @@ export async function GET() {
 
       return {
         player,
-        market: propMarket,
+        market,
         line: typeof prop.point === "number" ? prop.point : null,
         last_five,
         avg_l5: toNumber(stat?.avg_l5 ?? null),
@@ -179,6 +167,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
