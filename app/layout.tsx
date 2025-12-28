@@ -1,5 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+import Navbar from "@/components/Navbar"; // 👈 ADD THIS
 
 export const metadata = {
   title: "StatSavant",
@@ -14,11 +15,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-black text-white">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Navbar />        {/* 👈 MENU IS BACK */}
+          <main>{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );
 }
+
 
 
 
