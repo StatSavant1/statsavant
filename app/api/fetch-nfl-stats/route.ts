@@ -20,12 +20,12 @@ type PropRow = {
 type StatRow = {
   player: string | null;
   market: string | null;
-  g1: number | string | null;
-  g2: number | string | null;
-  g3: number | string | null;
-  g4: number | string | null;
-  g5: number | string | null;
-  avg_l5: number | string | null;
+  g1: number | null;
+  g2: number | null;
+  g3: number | null;
+  g4: number | null;
+  g5: number | null;
+  avg_l5: number | null;
   updated_at?: string | null;
 };
 
@@ -37,19 +37,10 @@ function normalizeName(name: string | null): string {
   if (!name) return "";
   return name
     .toLowerCase()
-    // remove accents
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    // remove anything in parentheses (team/position notes)
-    .replace(/\(.*?\)/g, "")
-    // remove apostrophes/periods/commas
     .replace(/['’.]/g, "")
-    .replace(/,/g, "")
-    // remove common suffixes
     .replace(/\s+(jr|sr|ii|iii|iv)$/i, "")
-    // remove trailing team abbreviations after dash (e.g. "breece hall - nyj")
-    .replace(/\s*[-–—]\s*[a-z]{2,4}\b/g, "")
-    // collapse spaces
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -60,13 +51,6 @@ function normalizeMarket(market: string | null): string {
 
 function toNumber(val: number | string | null): number | null {
   if (val === null || val === undefined) return null;
-
-  // handle "-" or "" from sheets
-  if (typeof val === "string") {
-    const t = val.trim();
-    if (!t || t === "-" || t.toLowerCase() === "null") return null;
-  }
-
   const n = Number(val);
   return Number.isNaN(n) ? null : n;
 }
@@ -105,7 +89,7 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
-    // 3) Build stats lookup map (keyed by normalized player + market)
+    // 3) Build stats lookup
     const statsMap = new Map<string, StatRow>();
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
@@ -113,7 +97,7 @@ export async function GET() {
       statsMap.set(key, s);
     }
 
-    // 4) Deduplicate props (latest commence_time wins)
+    // 4) Deduplicate props (latest game wins)
     const propMap = new Map<string, PropRow>();
 
     for (const p of props as PropRow[]) {
@@ -132,26 +116,17 @@ export async function GET() {
       }
     }
 
-    // 5) Merge props + stats (with diagnostics)
-    let missingStatCount = 0;
-    const missingByMarket: Record<string, number> = {};
-
+    // 5) Merge props + stats (⚠️ ZERO-SAFE)
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
-
       const key = `${normalizeName(player)}-${market}`;
       const stat = statsMap.get(key);
-
-      if (!stat) {
-        missingStatCount++;
-        missingByMarket[market] = (missingByMarket[market] ?? 0) + 1;
-      }
 
       const last_five = stat
         ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
             .map(toNumber)
-            .filter((v): v is number => v !== null)
+            .filter((v): v is number => v !== null) // ✅ keep zeros
         : [];
 
       return {
@@ -168,9 +143,6 @@ export async function GET() {
     });
 
     console.log("✅ NFL MERGED COUNT:", merged.length);
-    console.log("⚠️ NFL MISSING STAT COUNT:", missingStatCount);
-    console.log("⚠️ NFL MISSING BY MARKET:", missingByMarket);
-
     return NextResponse.json({ success: true, stats: merged });
   } catch (err: any) {
     console.error("💥 NFL API ERROR:", err?.message || err);
@@ -180,6 +152,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
