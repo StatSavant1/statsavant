@@ -17,7 +17,7 @@ export default function RootLayout({
       <body className="bg-black text-white" key="layout-v2">
         <AuthProvider>
           <Navbar />
-          <main>{children}</main>
+          <main className="pt-20">{children}</main>
         </AuthProvider>
       </body>
     </html>
