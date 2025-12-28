@@ -71,18 +71,14 @@ export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
 
-    /* -----------------------
-       Pull latest NFL props
-    ----------------------- */
+    // 1) Pull props
     const { data: props, error: propsErr } = await supabase
       .from("nfl_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
     if (propsErr) throw new Error(propsErr.message);
 
-    /* -----------------------
-       Pull recent NFL stats
-    ----------------------- */
+    // 2) Pull stats
     const { data: stats, error: statsErr } = await supabase
       .from("nfl_recent_stats_all")
       .select("*");
@@ -93,22 +89,15 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
-    /* -----------------------
-       Build stats lookup
-    ----------------------- */
+    // 3) Build stats lookup
     const statsMap = new Map<string, StatRow>();
-
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
-
       const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
       statsMap.set(key, s);
     }
 
-    /* -----------------------
-       Deduplicate props
-       (latest commence_time wins)
-    ----------------------- */
+    // 4) Deduplicate props (latest game wins)
     const propMap = new Map<string, PropRow>();
 
     for (const p of props as PropRow[]) {
@@ -127,32 +116,18 @@ export async function GET() {
       }
     }
 
-    /* -----------------------
-       Merge props + stats
-    ----------------------- */
+    // 5) Merge props + stats (NBA-style)
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
-
       const key = `${normalizeName(player)}-${market}`;
       const stat = statsMap.get(key);
 
-     const rawGames = stat
-  ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
-  : [];
-
-const last_five = rawGames
-  .map(toNumber)
-  .filter((v): v is number => v !== null);
-
-// Optional debug (temporary)
-if (stat && last_five.length === 0) {
-  console.log("⚠️ STAT ROW WITH NO NUMERIC GAMES:", {
-    player,
-    market,
-    rawGames,
-  });
-}
+      const last_five = stat
+        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
+            .map(toNumber)
+            .filter((v): v is number => v !== null)
+        : [];
 
       return {
         player,
@@ -168,7 +143,6 @@ if (stat && last_five.length === 0) {
     });
 
     console.log("✅ NFL MERGED COUNT:", merged.length);
-
     return NextResponse.json({ success: true, stats: merged });
   } catch (err: any) {
     console.error("💥 NFL API ERROR:", err?.message || err);
@@ -178,6 +152,7 @@ if (stat && last_five.length === 0) {
     );
   }
 }
+
 
 
 
