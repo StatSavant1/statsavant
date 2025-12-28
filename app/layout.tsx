@@ -18,7 +18,9 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {/* 👇 Navbar height offset goes HERE */}
-          <main className="pt-20">{children}</main>
+          <main className="pt-20">
+  {children}
+</main>
         </AuthProvider>
       </body>
     </html>
