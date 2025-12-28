@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PlayerCard from "@/components/PlayerCard";
-import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
+import { useAuth } from "@/components/AuthProvider";
 
 type NFLPlayer = {
   player: string;
@@ -18,128 +18,28 @@ type NFLPlayer = {
 const FREE_PREVIEW_PLAYERS = 5;
 
 /* =======================
-   Helpers
+   Date Helpers (EST-safe)
 ======================= */
 function isTodayOrFuture(commenceTime: string | null): boolean {
   if (!commenceTime) return false;
 
   const gameTime = new Date(commenceTime);
-  if (isNaN(gameTime.getTime())) return false;
-
-  const now = new Date();
-  const estToday = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/New_York" })
+  const nowEST = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/New_York" })
   );
-  estToday.setHours(0, 0, 0, 0);
 
-  return gameTime >= estToday;
+  return gameTime >= nowEST;
 }
 
 export default function NFLPage() {
+  const { isSubscriber, authChecked } = useAuth();
+
   const [players, setPlayers] = useState<NFLPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [marketFilter, setMarketFilter] = useState("all");
   const [search, setSearch] = useState("");
-
-  const [isSubscriber, setIsSubscriber] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  /* =======================
-     AUTH (COOKIE-SAFE)
-     - Timeout protected
-     - Auto-heals corrupted sessions
-     - Never blocks UI
-  ======================= */
-  useEffect(() => {
-    const supabase = supabaseBrowserClient();
-    let cancelled = false;
-
-    const AUTH_TIMEOUT_MS = 3000;
-
-    const timeoutId = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("⚠️ Auth timeout — rendering as logged out");
-        setIsSubscriber(false);
-        setAuthChecked(true);
-      }
-    }, AUTH_TIMEOUT_MS);
-
-    async function checkSub() {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (cancelled) return;
-
-        if (error) {
-          console.error("Auth session error:", error);
-          await supabase.auth.signOut(); // auto-heal
-          setIsSubscriber(false);
-          return;
-        }
-
-        const user = data.session?.user;
-        if (!user) {
-          setIsSubscriber(false);
-          return;
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("subscription_status")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          setIsSubscriber(false);
-          return;
-        }
-
-        setIsSubscriber(profile?.subscription_status === "active");
-      } catch (err) {
-        console.error("Auth check failed:", err);
-        try {
-          await supabase.auth.signOut();
-        } catch {}
-        setIsSubscriber(false);
-      } finally {
-        if (!cancelled) {
-          clearTimeout(timeoutId);
-          setAuthChecked(true);
-        }
-      }
-    }
-
-    checkSub();
-
-    // Listen for auth changes (refresh, login, logout)
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (cancelled) return;
-
-        if (!session?.user) {
-          setIsSubscriber(false);
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("subscription_status")
-          .eq("id", session.user.id)
-          .single();
-
-        setIsSubscriber(profile?.subscription_status === "active");
-      }
-    );
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-      sub.subscription.unsubscribe();
-    };
-  }, []);
 
   /* =======================
      Load NFL Data
@@ -180,12 +80,31 @@ export default function NFLPage() {
   }, [players, marketFilter, search]);
 
   /* =======================
-     Free vs Locked (CARD-BASED)
+     Unique Players (Preview)
+  ======================= */
+  const uniquePlayers = useMemo(() => {
+    const seen = new Set<string>();
+    return filteredPlayers.filter((p) => {
+      if (seen.has(p.player)) return false;
+      seen.add(p.player);
+      return true;
+    });
+  }, [filteredPlayers]);
+
+  /* =======================
+     Free vs Locked
   ======================= */
   const freePlayers = useMemo(() => {
     if (isSubscriber) return filteredPlayers;
-    return filteredPlayers.slice(0, FREE_PREVIEW_PLAYERS);
-  }, [filteredPlayers, isSubscriber]);
+
+    return filteredPlayers
+      .filter((p) =>
+        uniquePlayers
+          .slice(0, FREE_PREVIEW_PLAYERS)
+          .some((u) => u.player === p.player)
+      )
+      .slice(0, FREE_PREVIEW_PLAYERS);
+  }, [filteredPlayers, uniquePlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
     if (isSubscriber) return [];
@@ -226,13 +145,12 @@ export default function NFLPage() {
   const isPaywalled = !isSubscriber;
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-8">
+    <div className="min-h-screen bg-black text-white px-6 py-8 pt-24">
       {/* HEADER */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-green-400">
           NFL Player Prop Trends
         </h1>
-
         {lastUpdated && (
           <p className="text-sm text-gray-400 mt-1">
             Last Updated: {lastUpdated}
@@ -289,7 +207,7 @@ export default function NFLPage() {
         />
       </div>
 
-      {/* FREE PREVIEW */}
+      {/* FREE PREVIEW GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {freePlayers.map((p, idx) => (
           <PlayerCard
@@ -335,6 +253,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
