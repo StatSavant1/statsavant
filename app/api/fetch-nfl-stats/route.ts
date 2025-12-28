@@ -97,13 +97,49 @@ export async function GET() {
     /* -----------------------
        Build stats lookup
     ----------------------- */
-    const statsMap = new Map<string, StatRow>();
+   const statsMap = new Map<string, StatRow>();
 
-    for (const s of stats as StatRow[]) {
-      if (!s.player || !s.market) continue;
-      const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
-      statsMap.set(key, s);
-    }
+for (const s of stats as StatRow[]) {
+  if (!s.player || !s.market) continue;
+
+  const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
+  const existing = statsMap.get(key);
+
+  // If no existing stat, take it
+  if (!existing) {
+    statsMap.set(key, s);
+    continue;
+  }
+
+  // Prefer row with real game data
+  const existingHasGames =
+    existing.g1 !== null ||
+    existing.g2 !== null ||
+    existing.g3 !== null ||
+    existing.g4 !== null ||
+    existing.g5 !== null;
+
+  const currentHasGames =
+    s.g1 !== null ||
+    s.g2 !== null ||
+    s.g3 !== null ||
+    s.g4 !== null ||
+    s.g5 !== null;
+
+  // If existing has no games but current does → replace
+  if (!existingHasGames && currentHasGames) {
+    statsMap.set(key, s);
+    continue;
+  }
+
+  // If both have games, keep the most recently updated
+  if (
+    currentHasGames &&
+    toDateMs(s.updated_at ?? null) > toDateMs(existing.updated_at ?? null)
+  ) {
+    statsMap.set(key, s);
+  }
+}
 
     /* -----------------------
        Deduplicate props
