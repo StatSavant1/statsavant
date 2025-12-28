@@ -20,12 +20,12 @@ type PropRow = {
 type StatRow = {
   player: string | null;
   market: string | null;
-  g1: number | null;
-  g2: number | null;
-  g3: number | null;
-  g4: number | null;
-  g5: number | null;
-  avg_l5: number | null;
+  g1: number | string | null;
+  g2: number | string | null;
+  g3: number | string | null;
+  g4: number | string | null;
+  g5: number | string | null;
+  avg_l5: number | string | null;
   updated_at?: string | null;
 };
 
@@ -71,14 +71,14 @@ export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
 
-    // 1) Pull props
+    /* 1️⃣ Pull props */
     const { data: props, error: propsErr } = await supabase
       .from("nfl_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
     if (propsErr) throw new Error(propsErr.message);
 
-    // 2) Pull stats
+    /* 2️⃣ Pull stats */
     const { data: stats, error: statsErr } = await supabase
       .from("nfl_recent_stats_all")
       .select("*");
@@ -89,15 +89,16 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
-    // 3) Build stats lookup
+    /* 3️⃣ Build stats lookup */
     const statsMap = new Map<string, StatRow>();
+
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
       const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
       statsMap.set(key, s);
     }
 
-    // 4) Deduplicate props (latest game wins)
+    /* 4️⃣ Deduplicate props (latest game wins) */
     const propMap = new Map<string, PropRow>();
 
     for (const p of props as PropRow[]) {
@@ -116,7 +117,7 @@ export async function GET() {
       }
     }
 
-    // 5) Merge props + stats (⚠️ ZERO-SAFE)
+    /* 5️⃣ Merge props + stats */
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
@@ -124,9 +125,15 @@ export async function GET() {
       const stat = statsMap.get(key);
 
       const last_five = stat
-        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
+        ? [
+            stat.g1,
+            stat.g2,
+            stat.g3,
+            stat.g4,
+            stat.g5,
+          ]
             .map(toNumber)
-            .filter((v): v is number => v !== null) // ✅ keep zeros
+            .filter((v): v is number => v !== null)
         : [];
 
       return {
@@ -143,6 +150,7 @@ export async function GET() {
     });
 
     console.log("✅ NFL MERGED COUNT:", merged.length);
+
     return NextResponse.json({ success: true, stats: merged });
   } catch (err: any) {
     console.error("💥 NFL API ERROR:", err?.message || err);
@@ -152,6 +160,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
