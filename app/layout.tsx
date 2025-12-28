@@ -14,15 +14,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white" key="layout-v2">
+      <body className="bg-black text-white" key="layout-v3">
         <AuthProvider>
           <Navbar />
+          {/* 👇 offset for fixed navbar */}
           <main className="pt-20">{children}</main>
         </AuthProvider>
       </body>
     </html>
   );
 }
+
+
 
 
 
