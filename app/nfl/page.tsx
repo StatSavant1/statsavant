@@ -18,17 +18,19 @@ type NFLPlayer = {
 const FREE_PREVIEW_PLAYERS = 5;
 
 /* =======================
-   Date Helpers (EST-safe)
+   Date Helpers (EST)
 ======================= */
 function isTodayOrFuture(commenceTime: string | null): boolean {
   if (!commenceTime) return false;
 
   const gameTime = new Date(commenceTime);
-  const nowEST = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "America/New_York" })
+  const now = new Date(
+    new Date().toLocaleString("en-US", {
+      timeZone: "America/New_York",
+    })
   );
 
-  return gameTime >= nowEST;
+  return gameTime >= now;
 }
 
 export default function NFLPage() {
@@ -65,7 +67,7 @@ export default function NFLPage() {
   }, []);
 
   /* =======================
-     Filtered Players
+     Filtering
   ======================= */
   const filteredPlayers = useMemo(() => {
     return players
@@ -79,9 +81,6 @@ export default function NFLPage() {
       );
   }, [players, marketFilter, search]);
 
-  /* =======================
-     Unique Players (Preview)
-  ======================= */
   const uniquePlayers = useMemo(() => {
     const seen = new Set<string>();
     return filteredPlayers.filter((p) => {
@@ -91,9 +90,6 @@ export default function NFLPage() {
     });
   }, [filteredPlayers]);
 
-  /* =======================
-     Free vs Locked
-  ======================= */
   const freePlayers = useMemo(() => {
     if (isSubscriber) return filteredPlayers;
 
@@ -118,9 +114,6 @@ export default function NFLPage() {
     );
   }, [filteredPlayers, freePlayers, isSubscriber]);
 
-  /* =======================
-     Last Updated
-  ======================= */
   const lastUpdated = useMemo(() => {
     const dates = players
       .map((p) => p.updated_at)
@@ -151,6 +144,7 @@ export default function NFLPage() {
         <h1 className="text-3xl font-bold text-green-400">
           NFL Player Prop Trends
         </h1>
+
         {lastUpdated && (
           <p className="text-sm text-gray-400 mt-1">
             Last Updated: {lastUpdated}
@@ -160,7 +154,9 @@ export default function NFLPage() {
         {isPaywalled && (
           <div className="mt-4 bg-neutral-900 border border-neutral-700 rounded-2xl p-4 flex justify-between items-center">
             <div>
-              <p className="font-semibold">You’re viewing the free preview.</p>
+              <p className="font-semibold">
+                You’re viewing the free preview.
+              </p>
               <p className="text-gray-400 text-sm">
                 Subscribe to unlock full NFL access.
               </p>
@@ -207,7 +203,7 @@ export default function NFLPage() {
         />
       </div>
 
-      {/* FREE PREVIEW GRID */}
+      {/* FREE PREVIEW */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {freePlayers.map((p, idx) => (
           <PlayerCard
@@ -253,6 +249,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
