@@ -1,4 +1,10 @@
+import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+
+export const metadata = {
+  title: "StatSavant",
+  description: "Smarter Player Prop Research",
+};
 
 export default function RootLayout({
   children,
@@ -7,12 +13,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-black text-white">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
 }
+
 
 
 
