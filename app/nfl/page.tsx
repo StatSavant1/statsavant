@@ -138,7 +138,7 @@ export default function NFLPage() {
   const isPaywalled = !isSubscriber;
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-8 pt-24">
+    <div className="min-h-screen bg-black text-white px-6 py-8">
       {/* HEADER */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-green-400">
