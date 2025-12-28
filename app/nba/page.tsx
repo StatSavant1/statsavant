@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PlayerCard from "@/components/PlayerCard";
-import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
+import { useAuth } from "@/components/AuthProvider";
 
 type NBAPlayer = {
   player: string | null;
@@ -51,45 +51,17 @@ function shuffle<T>(arr: T[]) {
 }
 
 export default function NBAPage() {
+  /* =======================
+     AUTH (GLOBAL PROVIDER)
+  ======================= */
+  const { isSubscriber, authChecked } = useAuth();
+
   const [players, setPlayers] = useState<NBAPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [marketFilter, setMarketFilter] = useState("all");
   const [search, setSearch] = useState("");
-
-  const [isSubscriber, setIsSubscriber] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  /* =======================
-     Auth + Subscription
-  ======================= */
-  useEffect(() => {
-    const supabase = supabaseBrowserClient();
-
-    async function checkSub() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setIsSubscriber(false);
-        setAuthChecked(true);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_status")
-        .eq("id", user.id)
-        .single();
-
-      setIsSubscriber(profile?.subscription_status === "active");
-      setAuthChecked(true);
-    }
-
-    checkSub();
-  }, []);
 
   /* =======================
      Load NBA Data
@@ -207,6 +179,9 @@ export default function NBAPage() {
     return new Date(Math.max(...dates)).toLocaleString();
   }, [players]);
 
+  /* =======================
+     Loading / Error
+  ======================= */
   if (loading || !authChecked) {
     return <div className="p-8 text-gray-400">Loading NBA data…</div>;
   }
@@ -224,6 +199,7 @@ export default function NBAPage() {
         <h1 className="text-3xl font-bold text-green-400">
           NBA Player Prop Trends
         </h1>
+
         {lastUpdated && (
           <p className="text-sm text-gray-400 mt-1">
             Last Updated: {lastUpdated}
@@ -332,6 +308,7 @@ export default function NBAPage() {
     </div>
   );
 }
+
 
 
 
