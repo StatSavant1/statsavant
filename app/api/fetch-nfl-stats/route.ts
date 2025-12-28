@@ -69,16 +69,21 @@ export async function GET() {
   console.log("🔥 NFL API HIT");
 
   try {
+    // Create admin client
     const supabase = getSupabaseAdmin();
 
-    /* 1️⃣ Pull props */
+    /* -----------------------
+       Pull latest NFL props
+    ----------------------- */
     const { data: props, error: propsErr } = await supabase
       .from("nfl_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
     if (propsErr) throw new Error(propsErr.message);
 
-    /* 2️⃣ Pull stats */
+    /* -----------------------
+       Pull recent NFL stats
+    ----------------------- */
     const { data: stats, error: statsErr } = await supabase
       .from("nfl_recent_stats_all")
       .select("*");
@@ -89,7 +94,9 @@ export async function GET() {
       return NextResponse.json({ success: true, stats: [] });
     }
 
-    /* 3️⃣ Build stats lookup */
+    /* -----------------------
+       Build stats lookup
+    ----------------------- */
     const statsMap = new Map<string, StatRow>();
 
     for (const s of stats as StatRow[]) {
@@ -98,7 +105,10 @@ export async function GET() {
       statsMap.set(key, s);
     }
 
-    /* 4️⃣ Deduplicate props (latest game wins) */
+    /* -----------------------
+       Deduplicate props
+       (latest commence_time wins)
+    ----------------------- */
     const propMap = new Map<string, PropRow>();
 
     for (const p of props as PropRow[]) {
@@ -117,21 +127,18 @@ export async function GET() {
       }
     }
 
-    /* 5️⃣ Merge props + stats */
+    /* -----------------------
+       Merge props + stats
+    ----------------------- */
     const merged = Array.from(propMap.values()).map((prop) => {
       const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
+
       const key = `${normalizeName(player)}-${market}`;
       const stat = statsMap.get(key);
 
       const last_five = stat
-        ? [
-            stat.g1,
-            stat.g2,
-            stat.g3,
-            stat.g4,
-            stat.g5,
-          ]
+        ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
             .map(toNumber)
             .filter((v): v is number => v !== null)
         : [];
@@ -160,6 +167,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
