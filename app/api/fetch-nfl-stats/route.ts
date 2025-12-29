@@ -71,10 +71,16 @@ export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
 
+    /* -----------------------
+       Pull props
+    ----------------------- */
     const { data: props } = await supabase
       .from("nfl_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
+    /* -----------------------
+       Pull stats
+    ----------------------- */
     const { data: stats } = await supabase
       .from("nfl_recent_stats_all")
       .select("*");
@@ -84,22 +90,26 @@ export async function GET() {
     }
 
     /* -----------------------
-       Build stats map
-       player → market → stat
+       Build CLEAN stats map
     ----------------------- */
-    const statsMap = new Map<string, Map<string, StatRow>>();
+    const statsMap = new Map<string, StatRow>();
 
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
+      if (s.g1 === null) continue; // 🚨 critical guard
 
-      const playerKey = normalizeName(s.player);
-      const marketKey = normalizeMarket(s.market);
+      const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
+      const existing = statsMap.get(key);
 
-      if (!statsMap.has(playerKey)) {
-        statsMap.set(playerKey, new Map());
+      if (!existing) {
+        statsMap.set(key, s);
+        continue;
       }
 
-      statsMap.get(playerKey)!.set(marketKey, s);
+      // Keep most recent valid row
+      if (toDateMs(s.updated_at ?? null) > toDateMs(existing.updated_at ?? null)) {
+        statsMap.set(key, s);
+      }
     }
 
     /* -----------------------
@@ -122,13 +132,10 @@ export async function GET() {
        Merge
     ----------------------- */
     const merged = Array.from(propMap.values()).map((prop) => {
-      const player = prop.player!.trim();
+      const player = prop.player?.trim() || null;
       const market = normalizeMarket(prop.market);
-
-      const stat =
-        statsMap
-          .get(normalizeName(player))
-          ?.get(market) ?? null;
+      const key = `${normalizeName(player)}-${market}`;
+      const stat = statsMap.get(key);
 
       const last_five = stat
         ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
@@ -159,6 +166,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
