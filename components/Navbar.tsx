@@ -10,6 +10,7 @@ export default function Navbar() {
   const { isSubscriber, authChecked } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Prevent auth flicker / stale UI
   if (!authChecked) return null;
 
   const isActive = (path: string) =>
@@ -22,15 +23,26 @@ export default function Navbar() {
           StatSavant
         </Link>
 
-        {/* Desktop */}
+        {/* ======================
+            Desktop Navigation
+        ====================== */}
         <ul className="hidden md:flex space-x-8 text-gray-300 items-center">
           <li>
-            <Link href="/nfl" className={`hover:text-green-400 ${isActive("/nfl")}`}>
+            <Link
+              href="/nfl"
+              prefetch={false}
+              className={`hover:text-green-400 ${isActive("/nfl")}`}
+            >
               NFL
             </Link>
           </li>
+
           <li>
-            <Link href="/nba" className={`hover:text-green-400 ${isActive("/nba")}`}>
+            <Link
+              href="/nba"
+              prefetch={false}
+              className={`hover:text-green-400 ${isActive("/nba")}`}
+            >
               NBA
             </Link>
           </li>
@@ -39,6 +51,7 @@ export default function Navbar() {
             <li>
               <Link
                 href="/subscribe"
+                prefetch={false}
                 className={`hover:text-green-400 ${isActive("/subscribe")}`}
               >
                 Subscribe
@@ -47,37 +60,60 @@ export default function Navbar() {
           )}
 
           <li>
-            <Link href="/account" className={isActive("/account")}>
+            <Link
+              href="/account"
+              prefetch={false}
+              className={isActive("/account")}
+            >
               Account
             </Link>
           </li>
 
           <li>
-            <Link href="/logout" className="text-gray-400 hover:text-white">
+            <Link
+              href="/logout"
+              prefetch={false}
+              className="text-gray-400 hover:text-white"
+            >
               Logout
             </Link>
           </li>
         </ul>
 
-        {/* Mobile */}
+        {/* ======================
+            Mobile Toggle
+        ====================== */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="md:hidden text-gray-300"
+          aria-label="Toggle menu"
         >
           {menuOpen ? "✕" : "☰"}
         </button>
       </div>
 
+      {/* ======================
+          Mobile Navigation
+      ====================== */}
       {menuOpen && (
         <div className="md:hidden bg-black border-t border-neutral-800">
           <ul className="flex flex-col px-6 py-6 space-y-4 text-gray-300">
             <li>
-              <Link href="/nfl" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/nfl"
+                prefetch={false}
+                onClick={() => setMenuOpen(false)}
+              >
                 NFL
               </Link>
             </li>
+
             <li>
-              <Link href="/nba" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/nba"
+                prefetch={false}
+                onClick={() => setMenuOpen(false)}
+              >
                 NBA
               </Link>
             </li>
@@ -86,6 +122,7 @@ export default function Navbar() {
               <li>
                 <Link
                   href="/subscribe"
+                  prefetch={false}
                   onClick={() => setMenuOpen(false)}
                   className="text-green-400 font-semibold"
                 >
@@ -95,12 +132,21 @@ export default function Navbar() {
             )}
 
             <li>
-              <Link href="/account" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/account"
+                prefetch={false}
+                onClick={() => setMenuOpen(false)}
+              >
                 Account
               </Link>
             </li>
+
             <li>
-              <Link href="/logout" onClick={() => setMenuOpen(false)}>
+              <Link
+                href="/logout"
+                prefetch={false}
+                onClick={() => setMenuOpen(false)}
+              >
                 Logout
               </Link>
             </li>
@@ -110,6 +156,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 
 
 
