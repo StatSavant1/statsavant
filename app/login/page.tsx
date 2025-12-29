@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 export default function LoginPage() {
   const supabase = supabaseBrowserClient();
-  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: any) => {
-    e.preventDefault();
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault(); // 🔴 REQUIRED
+
+    setLoading(true);
+    setError(null);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -21,60 +23,56 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setErrorMsg(error.message);
-    } else {
-      router.push("/");
+      setError(error.message);
+      setLoading(false);
+      return;
     }
-  };
+
+    // 🔥 HARD redirect so middleware + auth reset cleanly
+    window.location.replace("/");
+  }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="bg-neutral-900 p-8 rounded-3xl border border-neutral-700 shadow-lg max-w-md w-full">
-        
-        <h1 className="text-3xl font-bold text-green-400 mb-6 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <form
+        onSubmit={handleLogin}
+        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 w-full max-w-md"
+      >
+        <h1 className="text-2xl font-bold text-green-400 mb-6 text-center">
           Login
         </h1>
 
-        {errorMsg && (
-          <div className="bg-red-600 text-white p-3 rounded-lg text-sm mb-4">
-            {errorMsg}
-          </div>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full mb-4 px-4 py-3 rounded-lg bg-neutral-800 text-white"
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full mb-6 px-4 py-3 rounded-lg bg-neutral-800 text-white"
+        />
+
+        <button
+          type="submit" // 🔴 REQUIRED
+          disabled={loading}
+          className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg transition disabled:opacity-50"
+        >
+          {loading ? "Logging in…" : "Login"}
+        </button>
+
+        {error && (
+          <p className="text-red-400 text-sm mt-4 text-center">{error}</p>
         )}
-
-        <form className="flex flex-col space-y-4" onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Email"
-            className="bg-neutral-800 text-white px-4 py-3 rounded-xl border border-neutral-700 focus:ring-2 focus:ring-green-500 outline-none"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            className="bg-neutral-800 text-white px-4 py-3 rounded-xl border border-neutral-700 focus:ring-2 focus:ring-green-500 outline-none"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          <button
-            type="submit"
-            className="bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-xl transition"
-          >
-            Login
-          </button>
-        </form>
-
-        <p className="text-gray-400 text-center text-sm mt-6">
-          Don't have an account?{" "}
-          <a href="/signup" className="text-green-400 underline">
-            Sign up
-          </a>
-        </p>
-      </div>
+      </form>
     </div>
   );
 }
+
