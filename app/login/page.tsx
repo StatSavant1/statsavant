@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function LoginPage() {
-  const supabase = supabaseBrowserClient();
+  // 🔥 IMPORTANT: DO NOT use supabaseBrowserClient() here
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,7 +17,6 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-
     if (loading) return;
 
     setLoading(true);
@@ -25,15 +28,10 @@ export default function LoginPage() {
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+      if (!data.session) throw new Error("No session returned");
 
-      if (!data.session) {
-        throw new Error("No session returned");
-      }
-
-      // 🔥 DO NOT WAIT — hard redirect immediately
+      // 🔥 HARD reload so app uses clean singleton next
       window.location.href = "/";
     } catch (err: any) {
       console.error("Login error:", err);
@@ -85,5 +83,6 @@ export default function LoginPage() {
     </div>
   );
 }
+
 
 
