@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 export default function LogoutPage() {
-  const router = useRouter();
-
   useEffect(() => {
     const supabase = supabaseBrowserClient();
 
@@ -16,14 +13,13 @@ export default function LogoutPage() {
       } catch (err) {
         console.error("Logout error:", err);
       } finally {
-        // IMPORTANT: force full auth + middleware refresh
-        router.replace("/login");
-        router.refresh();
+        // 🔥 FORCE FULL RELOAD (bypasses App Router + cache)
+        window.location.href = "/login";
       }
     }
 
     logout();
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center text-gray-400">
@@ -31,4 +27,5 @@ export default function LogoutPage() {
     </div>
   );
 }
+
 
