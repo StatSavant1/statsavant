@@ -7,10 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { isSubscriber, authChecked } = useAuth();
+  const { isLoggedIn, isSubscriber, authChecked } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Prevent auth flicker / stale UI
+  // Prevent flicker before auth resolves
   if (!authChecked) return null;
 
   const isActive = (path: string) =>
@@ -19,6 +19,7 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 w-full bg-gray-950 z-50">
       <div className="flex items-center justify-between px-6 py-4">
+        {/* Logo */}
         <Link href="/" className="text-2xl font-bold text-green-400">
           StatSavant
         </Link>
@@ -47,7 +48,8 @@ export default function Navbar() {
             </Link>
           </li>
 
-          {!isSubscriber && (
+          {/* Subscribe only if logged in but NOT subscribed */}
+          {isLoggedIn && !isSubscriber && (
             <li>
               <Link
                 href="/subscribe"
@@ -59,25 +61,43 @@ export default function Navbar() {
             </li>
           )}
 
-          <li>
-            <Link
-              href="/account"
-              prefetch={false}
-              className={isActive("/account")}
-            >
-              Account
-            </Link>
-          </li>
+          {/* Logged-out */}
+          {!isLoggedIn && (
+            <li>
+              <Link
+                href="/login"
+                prefetch={false}
+                className={`hover:text-green-400 ${isActive("/login")}`}
+              >
+                Login
+              </Link>
+            </li>
+          )}
 
-          <li>
-            <Link
-              href="/logout"
-              prefetch={false}
-              className="text-gray-400 hover:text-white"
-            >
-              Logout
-            </Link>
-          </li>
+          {/* Logged-in */}
+          {isLoggedIn && (
+            <>
+              <li>
+                <Link
+                  href="/account"
+                  prefetch={false}
+                  className={`hover:text-green-400 ${isActive("/account")}`}
+                >
+                  Account
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  href="/logout"
+                  prefetch={false}
+                  className="text-gray-400 hover:text-white"
+                >
+                  Logout
+                </Link>
+              </li>
+            </>
+          )}
         </ul>
 
         {/* ======================
@@ -118,7 +138,7 @@ export default function Navbar() {
               </Link>
             </li>
 
-            {!isSubscriber && (
+            {isLoggedIn && !isSubscriber && (
               <li>
                 <Link
                   href="/subscribe"
@@ -131,31 +151,48 @@ export default function Navbar() {
               </li>
             )}
 
-            <li>
-              <Link
-                href="/account"
-                prefetch={false}
-                onClick={() => setMenuOpen(false)}
-              >
-                Account
-              </Link>
-            </li>
+            {!isLoggedIn && (
+              <li>
+                <Link
+                  href="/login"
+                  prefetch={false}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              </li>
+            )}
 
-            <li>
-              <Link
-                href="/logout"
-                prefetch={false}
-                onClick={() => setMenuOpen(false)}
-              >
-                Logout
-              </Link>
-            </li>
+            {isLoggedIn && (
+              <>
+                <li>
+                  <Link
+                    href="/account"
+                    prefetch={false}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Account
+                  </Link>
+                </li>
+
+                <li>
+                  <Link
+                    href="/logout"
+                    prefetch={false}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Logout
+                  </Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
       )}
     </nav>
   );
 }
+
 
 
 
