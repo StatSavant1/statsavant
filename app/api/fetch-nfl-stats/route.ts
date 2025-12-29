@@ -35,12 +35,13 @@ type StatRow = {
 
 function normalizeName(name: string | null): string {
   if (!name) return "";
+
   return name
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['’.]/g, "")
-    .replace(/\s+(jr|sr|ii|iii|iv)$/i, "")
+    .replace(/[\u0300-\u036f]/g, "")     // accents
+    .replace(/[.'’]/g, "")               // punctuation
+    .replace(/\b(jr|sr|ii|iii|iv)\b/g, "") // suffixes anywhere
     .replace(/\s+/g, " ")
     .trim();
 }
