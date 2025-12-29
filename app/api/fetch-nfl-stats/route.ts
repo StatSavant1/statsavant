@@ -80,12 +80,14 @@ export async function GET(request: Request) {
       .from("nfl_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
+      console.log("PROPS ROWS SEEN BY API:", props?.length);
+
     /* -----------------------
        Pull stats
     ----------------------- */
     const { data: stats } = await supabase
       .from("nfl_recent_stats_all")
-      .select("player, market, g1, g2, g3, g4, g5, avg_l5, avg_l_5, updated_at");
+      .select("player, market, g1, g2, g3, g4, g5, avg_l5, updated_at");
 
     if (!props || !stats) {
       return NextResponse.json({ success: true, stats: [] });
@@ -167,7 +169,7 @@ export async function GET(request: Request) {
         market,
         line: typeof prop.point === "number" ? prop.point : null,
         last_five,
-        avg_l5: toNumber(stat?.avg_l5 ?? stat?.avg_l_5 ?? null),
+        avg_l5: toNumber(stat?.avg_l5 ?? null),
         updated_at: stat?.updated_at ?? null,
         home_team: prop.home_team,
         away_team: prop.away_team,
