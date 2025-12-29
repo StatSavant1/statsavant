@@ -96,7 +96,9 @@ export async function GET() {
 
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
-      if (s.g1 === null) continue; // 🚨 critical guard
+      if ([s.g1, s.g2, s.g3, s.g4, s.g5].every(v => v === null)) {
+  continue;
+}
 
       const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
       const existing = statsMap.get(key);
