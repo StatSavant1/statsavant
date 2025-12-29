@@ -48,7 +48,11 @@ function normalizeName(name: string | null): string {
 }
 
 function normalizeMarket(market: string | null): string {
-  return market ? market.toLowerCase().trim() : "";
+  if (!market) return "";
+  return market
+    .toLowerCase()
+    .replace(/[^a-z_]/g, "") // strip everything except letters + underscore
+    .trim();
 }
 
 function toNumber(val: number | string | null | undefined): number | null {
