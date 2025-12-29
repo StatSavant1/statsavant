@@ -13,7 +13,7 @@ export async function GET() {
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-      .from("nfl_props_with_stats")
+      .from("nfl_props_with_stats_mv")
       .select(
         `
         player,
