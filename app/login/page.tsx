@@ -12,24 +12,34 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleLogin(e: React.FormEvent) {
-    e.preventDefault(); // 🔴 REQUIRED
+    e.preventDefault();
+
+    if (loading) return;
 
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        throw error;
+      }
+
+      if (!data.session) {
+        throw new Error("No session returned");
+      }
+
+      // 🔥 DO NOT WAIT — hard redirect immediately
+      window.location.href = "/";
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Login failed");
       setLoading(false);
-      return;
     }
-
-    // 🔥 HARD redirect so middleware + auth reset cleanly
-    window.location.replace("/");
   }
 
   return (
@@ -44,24 +54,24 @@ export default function LoginPage() {
 
         <input
           type="email"
-          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
           required
           className="w-full mb-4 px-4 py-3 rounded-lg bg-neutral-800 text-white"
         />
 
         <input
           type="password"
-          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
           required
           className="w-full mb-6 px-4 py-3 rounded-lg bg-neutral-800 text-white"
         />
 
         <button
-          type="submit" // 🔴 REQUIRED
+          type="submit"
           disabled={loading}
           className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg transition disabled:opacity-50"
         >
@@ -75,4 +85,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
 
