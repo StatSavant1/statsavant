@@ -10,11 +10,15 @@ export default function Navbar() {
   const { isLoggedIn, isSubscriber, authChecked } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Prevent flicker before auth resolves
-  if (!authChecked) return null;
-
   const isActive = (path: string) =>
     pathname === path ? "text-green-400 font-semibold" : "";
+
+  // ✅ Render a shell immediately so layout never disappears
+  if (!authChecked) {
+    return (
+      <nav className="fixed top-0 left-0 w-full bg-gray-950 z-50 h-16" />
+    );
+  }
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-gray-950 z-50">
@@ -48,7 +52,6 @@ export default function Navbar() {
             </Link>
           </li>
 
-          {/* Subscribe only if logged in but NOT subscribed */}
           {isLoggedIn && !isSubscriber && (
             <li>
               <Link
@@ -61,7 +64,6 @@ export default function Navbar() {
             </li>
           )}
 
-          {/* Logged-out */}
           {!isLoggedIn && (
             <li>
               <Link
@@ -74,7 +76,6 @@ export default function Navbar() {
             </li>
           )}
 
-          {/* Logged-in */}
           {isLoggedIn && (
             <>
               <li>
@@ -192,6 +193,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 
 
 

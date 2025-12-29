@@ -24,27 +24,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = supabaseBrowserClient();
+    let resolved = false;
+
+    // 🔒 Fail-safe: never block UI forever
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        setAuthChecked(true);
+      }
+    }, 1500);
 
     async function initAuth() {
-      const { data } = await supabase.auth.getUser();
-      const currentUser = data.user;
+      try {
+        const { data } = await supabase.auth.getUser();
+        resolved = true;
 
-      setUser(currentUser);
+        const currentUser = data.user;
+        setUser(currentUser);
 
-      if (!currentUser) {
-        setIsSubscriber(false);
+        if (!currentUser) {
+          setIsSubscriber(false);
+          setAuthChecked(true);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscription_status")
+          .eq("id", currentUser.id)
+          .single();
+
+        setIsSubscriber(profile?.subscription_status === "active");
         setAuthChecked(true);
-        return;
+      } catch {
+        setAuthChecked(true);
+      } finally {
+        clearTimeout(timeout);
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_status")
-        .eq("id", currentUser.id)
-        .single();
-
-      setIsSubscriber(profile?.subscription_status === "active");
-      setAuthChecked(true);
     }
 
     initAuth();
@@ -71,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       listener.subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 
@@ -91,5 +107,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+
 
 
