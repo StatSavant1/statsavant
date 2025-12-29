@@ -4,81 +4,57 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type AuthContextType = {
+  user: any | null;
+  isLoggedIn: boolean;
   isSubscriber: boolean;
   authChecked: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoggedIn: false,
   isSubscriber: false,
   authChecked: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any | null>(null);
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowserClient();
-    let cancelled = false;
 
-    const AUTH_TIMEOUT_MS = 3000;
+    async function initAuth() {
+      const { data } = await supabase.auth.getUser();
+      const currentUser = data.user;
 
-    const timeoutId = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("⚠️ Auth timeout — rendering as logged out");
+      setUser(currentUser);
+
+      if (!currentUser) {
         setIsSubscriber(false);
         setAuthChecked(true);
+        return;
       }
-    }, AUTH_TIMEOUT_MS);
 
-    async function checkAuth() {
-      try {
-        const { data, error } = await supabase.auth.getSession();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .eq("id", currentUser.id)
+        .single();
 
-        if (cancelled) return;
-
-        if (error) {
-          await supabase.auth.signOut();
-          setIsSubscriber(false);
-          return;
-        }
-
-        const user = data.session?.user;
-        if (!user) {
-          setIsSubscriber(false);
-          return;
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("subscription_status")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) {
-          setIsSubscriber(false);
-          return;
-        }
-
-        setIsSubscriber(profile?.subscription_status === "active");
-      } catch {
-        try {
-          await supabase.auth.signOut();
-        } catch {}
-        setIsSubscriber(false);
-      } finally {
-        if (!cancelled) {
-          clearTimeout(timeoutId);
-          setAuthChecked(true);
-        }
-      }
+      setIsSubscriber(profile?.subscription_status === "active");
+      setAuthChecked(true);
     }
 
-    checkAuth();
+    initAuth();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(
+    const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (!session?.user) {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (!currentUser) {
           setIsSubscriber(false);
           return;
         }
@@ -86,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("subscription_status")
-          .eq("id", session.user.id)
+          .eq("id", currentUser.id)
           .single();
 
         setIsSubscriber(profile?.subscription_status === "active");
@@ -94,14 +70,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-      sub.subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isSubscriber, authChecked }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoggedIn: !!user,
+        isSubscriber,
+        authChecked,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -110,3 +91,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+
