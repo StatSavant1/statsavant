@@ -25,7 +25,8 @@ type StatRow = {
   g3: number | string | null;
   g4: number | string | null;
   g5: number | string | null;
-  avg_l5: number | string | null;
+  avg_l5?: number | string | null;
+  avg_l_5?: number | string | null; // safety
   updated_at?: string | null;
 };
 
@@ -38,10 +39,10 @@ function normalizeName(name: string | null): string {
 
   return name
     .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")     // accents
-    .replace(/[.'’]/g, "")               // punctuation
-    .replace(/\b(jr|sr|ii|iii|iv)\b/g, "") // suffixes anywhere
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")        // accents
+    .replace(/[^a-z\s]/g, " ")              // remove all punctuation
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "") // suffixes
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -50,13 +51,13 @@ function normalizeMarket(market: string | null): string {
   return market ? market.toLowerCase().trim() : "";
 }
 
-function toNumber(val: number | string | null): number | null {
+function toNumber(val: number | string | null | undefined): number | null {
   if (val === null || val === undefined) return null;
   const n = Number(val);
   return Number.isNaN(n) ? null : n;
 }
 
-function toDateMs(iso: string | null): number {
+function toDateMs(iso: string | null | undefined): number {
   if (!iso) return 0;
   const t = Date.parse(iso);
   return Number.isNaN(t) ? 0 : t;
@@ -66,7 +67,7 @@ function toDateMs(iso: string | null): number {
    API Handler
 ======================= */
 
-export async function GET() {
+export async function GET(request: Request) {
   console.log("🔥 NFL API HIT");
 
   try {
@@ -84,36 +85,51 @@ export async function GET() {
     ----------------------- */
     const { data: stats } = await supabase
       .from("nfl_recent_stats_all")
-      .select("*");
+      .select("player, market, g1, g2, g3, g4, g5, avg_l5, avg_l_5, updated_at");
 
     if (!props || !stats) {
       return NextResponse.json({ success: true, stats: [] });
     }
 
     /* -----------------------
-       Build CLEAN stats map
+       Build stats map
     ----------------------- */
     const statsMap = new Map<string, StatRow>();
 
     for (const s of stats as StatRow[]) {
       if (!s.player || !s.market) continue;
-      if ([s.g1, s.g2, s.g3, s.g4, s.g5].every(v => v === null)) {
-  continue;
-}
+
+      // Skip only if ALL games are null
+      if ([s.g1, s.g2, s.g3, s.g4, s.g5].every(v => v === null)) continue;
 
       const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
       const existing = statsMap.get(key);
 
-      if (!existing) {
-        statsMap.set(key, s);
-        continue;
-      }
-
-      // Keep most recent valid row
-      if (toDateMs(s.updated_at ?? null) > toDateMs(existing.updated_at ?? null)) {
+      if (!existing || toDateMs(s.updated_at) > toDateMs(existing.updated_at)) {
         statsMap.set(key, s);
       }
     }
+
+    /* -----------------------
+       DEBUG (optional)
+    ----------------------- */
+    const debugPlayers = ["bijan robinson", "kyren williams", "drake london"];
+    const debugMarkets = ["player_rush_yds", "player_reception_yds", "player_pass_yds"];
+
+    const debug = debugPlayers.flatMap(p =>
+      debugMarkets.map(m => {
+        const k = `${p}-${m}`;
+        const stat = statsMap.get(k);
+        return {
+          key: k,
+          hasStat: Boolean(stat),
+          statPlayer: stat?.player ?? null,
+          statMarket: stat?.market ?? null,
+          g1: stat?.g1 ?? null,
+          g2: stat?.g2 ?? null,
+        };
+      })
+    );
 
     /* -----------------------
        Deduplicate props
@@ -151,7 +167,7 @@ export async function GET() {
         market,
         line: typeof prop.point === "number" ? prop.point : null,
         last_five,
-        avg_l5: toNumber(stat?.avg_l5 ?? null),
+        avg_l5: toNumber(stat?.avg_l5 ?? stat?.avg_l_5 ?? null),
         updated_at: stat?.updated_at ?? null,
         home_team: prop.home_team,
         away_team: prop.away_team,
@@ -159,8 +175,16 @@ export async function GET() {
       };
     });
 
+    const isDebug = new URL(request.url).searchParams.get("debug") === "1";
+
     console.log("✅ NFL MERGED COUNT:", merged.length);
-    return NextResponse.json({ success: true, stats: merged });
+
+    return NextResponse.json({
+      success: true,
+      stats: merged,
+      debug: isDebug ? debug : undefined,
+    });
+
   } catch (err: any) {
     console.error("💥 NFL API ERROR:", err);
     return NextResponse.json(
@@ -169,6 +193,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
