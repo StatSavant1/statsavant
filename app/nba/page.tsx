@@ -87,17 +87,13 @@ export default function NBAPage() {
   }, []);
 
   /* =======================
-     Markets (exclude assists)
+     Markets (allow all)
   ======================= */
   const markets = useMemo(() => {
-    return Array.from(
-      new Set(
-        players
-          .map((p) => p.market)
-          .filter((m) => m && m !== "player_assists")
-      )
-    );
-  }, [players]);
+  return Array.from(
+    new Set(players.map((p) => p.market).filter(Boolean))
+  );
+}, [players]);
 
   /* =======================
      Base Filtering
