@@ -9,12 +9,13 @@ export default function LogoutPage() {
 
     async function logout() {
       try {
-        await supabase.auth.signOut();
+        // 🔥 Explicitly revoke session everywhere
+        await supabase.auth.signOut({ scope: "global" });
       } catch (err) {
         console.error("Logout error:", err);
       } finally {
-        // 🔥 FORCE FULL RELOAD (bypasses App Router + cache)
-        window.location.href = "/login";
+        // Force hard reload so middleware + cookies reset
+        window.location.replace("/login");
       }
     }
 
@@ -27,5 +28,6 @@ export default function LogoutPage() {
     </div>
   );
 }
+
 
 
