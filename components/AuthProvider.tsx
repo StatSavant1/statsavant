@@ -24,69 +24,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = supabaseBrowserClient();
-    let resolved = false;
+    let cancelled = false;
 
     // 🔒 Fail-safe: never block UI forever
     const timeout = setTimeout(() => {
-      if (!resolved) {
+      if (!cancelled) {
         setAuthChecked(true);
       }
     }, 1500);
 
-    async function initAuth() {
+    async function validateAuth() {
       try {
-        const { data } = await supabase.auth.getUser();
-        resolved = true;
+        const { data } = await supabase.auth.getSession();
+        const session = data.session;
 
-        const currentUser = data.user;
-        setUser(currentUser);
-
-        if (!currentUser) {
+        if (!session?.user) {
+          if (cancelled) return;
+          setUser(null);
           setIsSubscriber(false);
           setAuthChecked(true);
           return;
         }
 
+        setUser(session.user);
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("subscription_status")
-          .eq("id", currentUser.id)
+          .eq("id", session.user.id)
           .single();
 
-        setIsSubscriber(profile?.subscription_status === "active");
-        setAuthChecked(true);
-      } catch {
-        setAuthChecked(true);
+        if (!cancelled) {
+          setIsSubscriber(profile?.subscription_status === "active");
+          setAuthChecked(true);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setUser(null);
+          setIsSubscriber(false);
+          setAuthChecked(true);
+        }
       } finally {
         clearTimeout(timeout);
       }
     }
 
-    initAuth();
+    // Initial check
+    validateAuth();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
+    // 🔁 Re-validate on ANY auth event
+    const { data: listener } = supabase.auth.onAuthStateChange(async () => {
+      await validateAuth();
+    });
 
-        if (!currentUser) {
-          setIsSubscriber(false);
-          return;
-        }
+    // 🔥 CRITICAL: re-check when tab regains focus / visibility
+    const handleFocus = async () => {
+      await validateAuth();
+    };
 
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("subscription_status")
-          .eq("id", currentUser.id)
-          .single();
-
-        setIsSubscriber(profile?.subscription_status === "active");
-      }
-    );
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("visibilitychange", handleFocus);
 
     return () => {
+      cancelled = true;
       listener.subscription.unsubscribe();
       clearTimeout(timeout);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("visibilitychange", handleFocus);
     };
   }, []);
 
@@ -107,6 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+
 
 
 
