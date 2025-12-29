@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function LoginPage() {
-  // 🔥 IMPORTANT: DO NOT use supabaseBrowserClient() here
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +30,7 @@ export default function LoginPage() {
       if (error) throw error;
       if (!data.session) throw new Error("No session returned");
 
-      // 🔥 HARD reload so app uses clean singleton next
+      // HARD reload so middleware + app rehydrate correctly
       window.location.href = "/";
     } catch (err: any) {
       console.error("Login error:", err);
@@ -83,6 +82,7 @@ export default function LoginPage() {
     </div>
   );
 }
+
 
 
 
