@@ -69,81 +69,41 @@ export async function GET() {
   console.log("🔥 NFL API HIT");
 
   try {
-    // Create admin client
     const supabase = getSupabaseAdmin();
 
-    /* -----------------------
-       Pull latest NFL props
-    ----------------------- */
-    const { data: props, error: propsErr } = await supabase
+    const { data: props } = await supabase
       .from("nfl_player_props_latest")
       .select("player, market, point, home_team, away_team, commence_time");
 
-    if (propsErr) throw new Error(propsErr.message);
-
-    /* -----------------------
-       Pull recent NFL stats
-    ----------------------- */
-    const { data: stats, error: statsErr } = await supabase
+    const { data: stats } = await supabase
       .from("nfl_recent_stats_all")
       .select("*");
-
-    if (statsErr) throw new Error(statsErr.message);
 
     if (!props || !stats) {
       return NextResponse.json({ success: true, stats: [] });
     }
 
     /* -----------------------
-       Build stats lookup
+       Build stats map
+       player → market → stat
     ----------------------- */
-   const statsMap = new Map<string, StatRow>();
+    const statsMap = new Map<string, Map<string, StatRow>>();
 
-for (const s of stats as StatRow[]) {
-  if (!s.player || !s.market) continue;
+    for (const s of stats as StatRow[]) {
+      if (!s.player || !s.market) continue;
 
-  const key = `${normalizeName(s.player)}-${normalizeMarket(s.market)}`;
-  const existing = statsMap.get(key);
+      const playerKey = normalizeName(s.player);
+      const marketKey = normalizeMarket(s.market);
 
-  // If no existing stat, take it
-  if (!existing) {
-    statsMap.set(key, s);
-    continue;
-  }
+      if (!statsMap.has(playerKey)) {
+        statsMap.set(playerKey, new Map());
+      }
 
-  // Prefer row with real game data
-  const existingHasGames =
-    existing.g1 !== null ||
-    existing.g2 !== null ||
-    existing.g3 !== null ||
-    existing.g4 !== null ||
-    existing.g5 !== null;
-
-  const currentHasGames =
-    s.g1 !== null ||
-    s.g2 !== null ||
-    s.g3 !== null ||
-    s.g4 !== null ||
-    s.g5 !== null;
-
-  // If existing has no games but current does → replace
-  if (!existingHasGames && currentHasGames) {
-    statsMap.set(key, s);
-    continue;
-  }
-
-  // If both have games, keep the most recently updated
-  if (
-    currentHasGames &&
-    toDateMs(s.updated_at ?? null) > toDateMs(existing.updated_at ?? null)
-  ) {
-    statsMap.set(key, s);
-  }
-}
+      statsMap.get(playerKey)!.set(marketKey, s);
+    }
 
     /* -----------------------
        Deduplicate props
-       (latest commence_time wins)
     ----------------------- */
     const propMap = new Map<string, PropRow>();
 
@@ -153,25 +113,22 @@ for (const s of stats as StatRow[]) {
       const key = `${normalizeName(p.player)}-${normalizeMarket(p.market)}`;
       const existing = propMap.get(key);
 
-      if (!existing) {
-        propMap.set(key, p);
-        continue;
-      }
-
-      if (toDateMs(p.commence_time) > toDateMs(existing.commence_time)) {
+      if (!existing || toDateMs(p.commence_time) > toDateMs(existing.commence_time)) {
         propMap.set(key, p);
       }
     }
 
     /* -----------------------
-       Merge props + stats
+       Merge
     ----------------------- */
     const merged = Array.from(propMap.values()).map((prop) => {
-      const player = prop.player?.trim() || null;
+      const player = prop.player!.trim();
       const market = normalizeMarket(prop.market);
 
-      const key = `${normalizeName(player)}-${market}`;
-      const stat = statsMap.get(key);
+      const stat =
+        statsMap
+          .get(normalizeName(player))
+          ?.get(market) ?? null;
 
       const last_five = stat
         ? [stat.g1, stat.g2, stat.g3, stat.g4, stat.g5]
@@ -193,16 +150,17 @@ for (const s of stats as StatRow[]) {
     });
 
     console.log("✅ NFL MERGED COUNT:", merged.length);
-
     return NextResponse.json({ success: true, stats: merged });
   } catch (err: any) {
-    console.error("💥 NFL API ERROR:", err?.message || err);
+    console.error("💥 NFL API ERROR:", err);
     return NextResponse.json(
       { success: false, error: err?.message || "Server error" },
       { status: 500 }
     );
   }
 }
+
+
 
 
 
