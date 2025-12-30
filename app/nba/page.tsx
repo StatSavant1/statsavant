@@ -17,7 +17,7 @@ type NBAPlayer = {
 const FREE_PREVIEW_PLAYERS = 5;
 
 /* =======================
-   EST Date Helper
+   EST Date Helpers
 ======================= */
 function getTodayESTKey() {
   return new Date().toLocaleDateString("en-US", {
@@ -45,7 +45,7 @@ function isTodayEST(dateString: string | null) {
 }
 
 /* =======================
-   Seeded Shuffle (Stable per day)
+   Seeded Shuffle (stable per day)
 ======================= */
 function seededShuffle<T>(arr: T[], seed: string) {
   const copy = [...arr];
@@ -120,7 +120,7 @@ export default function NBAPage() {
   }, [players, marketFilter, search]);
 
   /* =======================
-     Unique Players
+     Unique Players (by name)
   ======================= */
   const uniquePlayers = useMemo(() => {
     const seen = new Set<string>();
@@ -133,32 +133,41 @@ export default function NBAPage() {
   }, [filteredPlayers]);
 
   /* =======================
-     Daily Randomized Preview Pool
+     EXACTLY 5 FREE PREVIEW CARDS
   ======================= */
-  const previewPlayers = useMemo(() => {
+  const freePlayers = useMemo(() => {
     if (isSubscriber) return filteredPlayers;
 
     const seed = getTodayESTKey();
-    const shuffled = seededShuffle(uniquePlayers, seed)
-      .slice(0, FREE_PREVIEW_PLAYERS)
-      .map((u) => u.player);
 
-    return filteredPlayers.filter((p) =>
-      shuffled.includes(p.player ?? "")
+    return seededShuffle(uniquePlayers, seed).slice(
+      0,
+      FREE_PREVIEW_PLAYERS
     );
-  }, [filteredPlayers, uniquePlayers, isSubscriber]);
+  }, [uniquePlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
     if (isSubscriber) return [];
 
-    const freeSet = new Set(
-      previewPlayers.map((p) => `${p.player}-${p.market}`)
-    );
+    const freeSet = new Set(freePlayers.map((p) => p.player));
 
     return filteredPlayers.filter(
-      (p) => !freeSet.has(`${p.player}-${p.market}`)
+      (p) => !freeSet.has(p.player ?? "")
     );
-  }, [filteredPlayers, previewPlayers, isSubscriber]);
+  }, [filteredPlayers, freePlayers, isSubscriber]);
+
+  /* =======================
+     Last Updated
+  ======================= */
+  const lastUpdated = useMemo(() => {
+    const dates = players
+      .map((p) => p.updated_at)
+      .filter(Boolean)
+      .map((d) => new Date(d as string).getTime());
+
+    if (!dates.length) return null;
+    return new Date(Math.max(...dates)).toLocaleString();
+  }, [players]);
 
   /* =======================
      Loading / Error
@@ -171,13 +180,79 @@ export default function NBAPage() {
     return <div className="p-8 text-red-500">NBA Error: {error}</div>;
   }
 
+  const isPaywalled = !isSubscriber;
+
   return (
     <div className="min-h-screen bg-black text-white px-6 py-8">
-      {/* FREE PREVIEW GRID */}
+      {/* HEADER */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-green-400">
+          NBA Player Prop Trends
+        </h1>
+
+        {lastUpdated && (
+          <p className="text-sm text-gray-400 mt-1">
+            Last Updated: {lastUpdated}
+          </p>
+        )}
+
+        {isPaywalled && (
+          <div className="mt-4 bg-neutral-900 border border-neutral-700 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="font-semibold">
+                You’re viewing the free preview.
+              </p>
+              <p className="text-gray-400 text-sm">
+                Subscribe to unlock full NBA access.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href="/subscribe"
+                className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl"
+              >
+                Subscribe
+              </Link>
+              <Link
+                href="/login"
+                className="bg-neutral-800 border border-neutral-700 px-4 py-2 rounded-xl"
+              >
+                Login
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CONTROLS */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <select
+          className="bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
+          value={marketFilter}
+          onChange={(e) => setMarketFilter(e.target.value)}
+        >
+          <option value="all">All Markets</option>
+          {markets.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="text"
+          placeholder="Search player…"
+          className="bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* FREE PREVIEW GRID (ONLY 5) */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
-        {previewPlayers.map((p, idx) => (
+        {freePlayers.map((p, idx) => (
           <PlayerCard
-            key={`free-${p.player}-${p.market}-${idx}`}
+            key={`free-${p.player}-${idx}`}
             player={p.player ?? "Unknown"}
             market={p.market}
             line={p.line}
@@ -188,11 +263,14 @@ export default function NBAPage() {
         ))}
       </div>
 
-      {/* LOCKED */}
+      {/* LOCKED PLAYERS */}
       {!isSubscriber && lockedPlayers.length > 0 && (
         <div className="columns-1 md:columns-2 xl:columns-3 gap-6">
           {lockedPlayers.map((p, idx) => (
-            <div key={idx} className="relative mb-6 break-inside-avoid">
+            <div
+              key={`locked-${p.player}-${p.market}-${idx}`}
+              className="relative mb-6 break-inside-avoid"
+            >
               <div className="blur-md pointer-events-none">
                 <PlayerCard
                   player={p.player ?? "Unknown"}
@@ -222,6 +300,7 @@ export default function NBAPage() {
     </div>
   );
 }
+
 
 
 
