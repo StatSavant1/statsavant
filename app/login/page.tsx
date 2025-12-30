@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  const { refreshAuth } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,19 +24,25 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) throw error;
+      if (!data.session) throw new Error("No session returned");
+
+      // 🔑 CRITICAL: re-hydrate client auth from server cookies
+      await refreshAuth();
+
+      // 🔥 Force full navigation so middleware + navbar sync
+      window.location.replace("/");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Login failed");
       setLoading(false);
-      return;
     }
-
-    // full reload so middleware + navbar rehydrate
-    window.location.replace("/");
   }
 
   return (
@@ -79,6 +88,7 @@ export default function LoginPage() {
     </main>
   );
 }
+
 
 
 
