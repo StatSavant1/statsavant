@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 type AuthContextType = {
   user: any | null;
   isLoggedIn: boolean;
   isSubscriber: boolean;
   authChecked: boolean;
+  refreshAuth: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isSubscriber: false,
   authChecked: false,
+  refreshAuth: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -22,76 +23,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
-  useEffect(() => {
-    const supabase = supabaseBrowserClient();
-    let cancelled = false;
+  async function refreshAuth() {
+    try {
+      setAuthChecked(false);
 
-    // 🔒 Fail-safe: never block UI forever
-    const timeout = setTimeout(() => {
-      if (!cancelled) {
-        setAuthChecked(true);
+      const res = await fetch("/api/auth/session", { cache: "no-store" });
+      const data = await res.json();
+
+      if (!data.user) {
+        setUser(null);
+        setIsSubscriber(false);
+        return;
       }
-    }, 1500);
 
-    async function validateAuth() {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const session = data.session;
+      setUser(data.user);
 
-        if (!session?.user) {
-          if (cancelled) return;
-          setUser(null);
-          setIsSubscriber(false);
-          setAuthChecked(true);
-          return;
-        }
-
-        setUser(session.user);
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("subscription_status")
-          .eq("id", session.user.id)
-          .single();
-
-        if (!cancelled) {
-          setIsSubscriber(profile?.subscription_status === "active");
-          setAuthChecked(true);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setUser(null);
-          setIsSubscriber(false);
-          setAuthChecked(true);
-        }
-      } finally {
-        clearTimeout(timeout);
+      const profileRes = await fetch("/api/me", { cache: "no-store" });
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setIsSubscriber(profile.subscription_status === "active");
+      } else {
+        setIsSubscriber(false);
       }
+    } catch (err) {
+      console.error("Auth refresh error:", err);
+      setUser(null);
+      setIsSubscriber(false);
+    } finally {
+      setAuthChecked(true);
     }
+  }
 
-    // Initial check
-    validateAuth();
-
-    // 🔁 Re-validate on ANY auth event
-    const { data: listener } = supabase.auth.onAuthStateChange(async () => {
-      await validateAuth();
-    });
-
-    // 🔥 CRITICAL: re-check when tab regains focus / visibility
-    const handleFocus = async () => {
-      await validateAuth();
-    };
-
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("visibilitychange", handleFocus);
-
-    return () => {
-      cancelled = true;
-      listener.subscription.unsubscribe();
-      clearTimeout(timeout);
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("visibilitychange", handleFocus);
-    };
+  // Initial hydration
+  useEffect(() => {
+    refreshAuth();
   }, []);
 
   return (
@@ -101,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoggedIn: !!user,
         isSubscriber,
         authChecked,
+        refreshAuth,
       }}
     >
       {children}
@@ -111,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+
 
 
 
