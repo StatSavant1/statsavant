@@ -18,8 +18,14 @@ type NFLPlayer = {
 const FREE_PREVIEW_PLAYERS = 5;
 
 /* =======================
-   Date Helpers (EST)
+   EST Helpers
 ======================= */
+function getTodayESTKey() {
+  return new Date().toLocaleDateString("en-US", {
+    timeZone: "America/New_York",
+  });
+}
+
 function isTodayOrFuture(commenceTime: string | null): boolean {
   if (!commenceTime) return false;
 
@@ -31,6 +37,25 @@ function isTodayOrFuture(commenceTime: string | null): boolean {
   );
 
   return gameTime >= now;
+}
+
+/* =======================
+   Seeded Shuffle (stable per day)
+======================= */
+function seededShuffle<T>(arr: T[], seed: string) {
+  const copy = [...arr];
+  let hash = 0;
+
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.abs(hash + i) % (i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+
+  return copy;
 }
 
 export default function NFLPage() {
@@ -67,7 +92,7 @@ export default function NFLPage() {
   }, []);
 
   /* =======================
-     Filtering
+     Base Filtering
   ======================= */
   const filteredPlayers = useMemo(() => {
     return players
@@ -81,6 +106,20 @@ export default function NFLPage() {
       );
   }, [players, marketFilter, search]);
 
+  /* =======================
+     Alphabetical (Subscribers)
+  ======================= */
+  const subscriberPlayers = useMemo(() => {
+    if (!isSubscriber) return [];
+
+    return [...filteredPlayers].sort((a, b) =>
+      a.player.localeCompare(b.player)
+    );
+  }, [filteredPlayers, isSubscriber]);
+
+  /* =======================
+     Unique Players (Free Preview Pool)
+  ======================= */
   const uniquePlayers = useMemo(() => {
     const seen = new Set<string>();
     return filteredPlayers.filter((p) => {
@@ -90,30 +129,33 @@ export default function NFLPage() {
     });
   }, [filteredPlayers]);
 
+  /* =======================
+     Randomized Free Preview (5 only)
+  ======================= */
   const freePlayers = useMemo(() => {
-    if (isSubscriber) return filteredPlayers;
+    if (isSubscriber) return [];
 
-    return filteredPlayers
-      .filter((p) =>
-        uniquePlayers
-          .slice(0, FREE_PREVIEW_PLAYERS)
-          .some((u) => u.player === p.player)
-      )
-      .slice(0, FREE_PREVIEW_PLAYERS);
-  }, [filteredPlayers, uniquePlayers, isSubscriber]);
+    const seed = getTodayESTKey();
+
+    return seededShuffle(uniquePlayers, seed).slice(
+      0,
+      FREE_PREVIEW_PLAYERS
+    );
+  }, [uniquePlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
     if (isSubscriber) return [];
 
-    const freeSet = new Set(
-      freePlayers.map((p) => `${p.player}-${p.market}`)
-    );
+    const freeSet = new Set(freePlayers.map((p) => p.player));
 
     return filteredPlayers.filter(
-      (p) => !freeSet.has(`${p.player}-${p.market}`)
+      (p) => !freeSet.has(p.player)
     );
   }, [filteredPlayers, freePlayers, isSubscriber]);
 
+  /* =======================
+     Last Updated
+  ======================= */
   const lastUpdated = useMemo(() => {
     const dates = players
       .map((p) => p.updated_at)
@@ -203,20 +245,39 @@ export default function NFLPage() {
         />
       </div>
 
-      {/* FREE PREVIEW */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {freePlayers.map((p, idx) => (
-          <PlayerCard
-            key={`free-${p.player}-${p.market}-${idx}`}
-            player={p.player}
-            market={p.market}
-            line={p.line}
-            lastGames={p.last_five}
-            avg={p.avg_l5}
-            windowLabel="L5"
-          />
-        ))}
-      </div>
+      {/* FREE PREVIEW (Randomized) */}
+      {!isSubscriber && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {freePlayers.map((p, idx) => (
+            <PlayerCard
+              key={`free-${p.player}-${idx}`}
+              player={p.player}
+              market={p.market}
+              line={p.line}
+              lastGames={p.last_five}
+              avg={p.avg_l5}
+              windowLabel="L5"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* SUBSCRIBER VIEW (Alphabetical) */}
+      {isSubscriber && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {subscriberPlayers.map((p, idx) => (
+            <PlayerCard
+              key={`sub-${p.player}-${p.market}-${idx}`}
+              player={p.player}
+              market={p.market}
+              line={p.line}
+              lastGames={p.last_five}
+              avg={p.avg_l5}
+              windowLabel="L5"
+            />
+          ))}
+        </div>
+      )}
 
       {/* LOCKED */}
       {!isSubscriber && (
@@ -249,6 +310,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
