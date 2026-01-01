@@ -16,9 +16,9 @@ export default function HomePage() {
           </h1>
 
           <p className="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-8">
-            StatSavant helps identify player prop trends across
-            NFL and NBA — comparing recent performance against current lines so
-            you can make faster, sharper decisions.
+            StatSavant helps bettors identify player prop trends across the
+            NFL, NBA, and NHL — comparing recent performance to current lines
+            so you can spot edges faster and bet with confidence.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -35,75 +35,81 @@ export default function HomePage() {
             >
               View NBA Props
             </Link>
+
+            <Link
+              href="/nhl"
+              className="bg-neutral-900 border border-neutral-700 hover:border-green-500 text-white font-bold px-8 py-4 rounded-xl transition"
+            >
+              View NHL Props
+            </Link>
           </div>
         </section>
 
         {/* =======================
-            HOW IT WORKS
+            WHY STATSAVANT
         ======================= */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-20">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-24">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
             <h3 className="text-xl font-bold text-green-400 mb-3">
-              Track Recent Trends
+              Built for Serious Bettors
             </h3>
             <p className="text-gray-400 text-sm">
-              See how players have performed over their last games with clear,
-              visual breakdowns.
+              Designed for bettors who want data-backed insights — not picks,
+              hype, or social media noise.
             </p>
           </div>
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
             <h3 className="text-xl font-bold text-green-400 mb-3">
-              Compare to the Line
+              Trend-Based Edge
             </h3>
             <p className="text-gray-400 text-sm">
-              Instantly compare recent averages against today’s prop lines to
-              spot potential edges.
+              Instantly see last-10 game performance, averages, and how often
+              players are clearing today’s lines.
             </p>
           </div>
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
             <h3 className="text-xl font-bold text-green-400 mb-3">
-              Bet With Confidence
+              One Platform, All Sports
             </h3>
             <p className="text-gray-400 text-sm">
-              No picks. No hype. Just clean data to support smarter betting
-              decisions.
+              NFL, NBA, and NHL player props in one clean dashboard — no
+              spreadsheets, no tab overload.
             </p>
           </div>
         </section>
 
         {/* =======================
-            FREE PREVIEW CTA
+            SUBSCRIBER VALUE
         ======================= */}
-        <section className="bg-neutral-900 border border-neutral-800 rounded-3xl p-10 text-center">
-          <h2 className="text-3xl font-bold text-green-400 mb-4">
-            Try StatSavant Free
+        <section className="bg-neutral-900 border border-neutral-800 rounded-3xl p-12 text-center">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-green-400 mb-4">
+            Turn Research Into an Advantage
           </h2>
 
-          <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
-            View a limited free preview of today’s player props. Unlock full
-            access to all markets and players with a subscription.
+          <p className="text-gray-300 max-w-3xl mx-auto mb-6">
+            StatSavant subscribers unlock full access to all player props,
+            markets, and trend data across every supported sport. Whether
+            you’re building single bets or parlays, StatSavant helps you
+            research smarter and move faster.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/pricing"
-              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-3 rounded-xl transition"
-            >
-              View Pricing
-            </Link>
+          <p className="text-gray-400 text-sm mb-8">
+            No picks. No bias. Just clean data designed to help you make better
+            betting decisions.
+          </p>
 
-            <Link
-              href="/signup"
-              className="bg-neutral-800 border border-neutral-700 hover:border-green-500 px-8 py-3 rounded-xl transition"
-            >
-              Create Free Account
-            </Link>
-          </div>
+          <Link
+            href="/subscribe"
+            className="inline-block bg-green-500 hover:bg-green-600 text-black font-bold px-10 py-4 rounded-xl transition"
+          >
+            Unlock Full Access
+          </Link>
         </section>
 
       </div>
     </main>
   );
 }
+
