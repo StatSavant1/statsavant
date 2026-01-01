@@ -52,6 +52,17 @@ export default function Navbar() {
             </Link>
           </li>
 
+          {/* Add NHL Link */}
+          <li>
+            <Link
+              href="/nhl"
+              prefetch={false}
+              className={`hover:text-green-400 ${isActive("/nhl")}`}
+            >
+              NHL
+            </Link>
+          </li>
+
           {isLoggedIn && !isSubscriber && (
             <li>
               <Link
@@ -139,6 +150,17 @@ export default function Navbar() {
               </Link>
             </li>
 
+            {/* Add NHL Link to Mobile Menu */}
+            <li>
+              <Link
+                href="/nhl"
+                prefetch={false}
+                onClick={() => setMenuOpen(false)}
+              >
+                NHL
+              </Link>
+            </li>
+
             {isLoggedIn && !isSubscriber && (
               <li>
                 <Link
@@ -193,6 +215,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 
 
 
