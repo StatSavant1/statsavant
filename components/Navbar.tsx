@@ -13,7 +13,7 @@ export default function Navbar() {
   const isActive = (path: string) =>
     pathname === path ? "text-green-400 font-semibold" : "";
 
-  // ✅ Render a shell immediately so layout never disappears
+  // Prevent layout flash
   if (!authChecked) {
     return (
       <nav className="fixed top-0 left-0 w-full bg-gray-950 z-50 h-16" />
@@ -33,42 +33,31 @@ export default function Navbar() {
         ====================== */}
         <ul className="hidden md:flex space-x-8 text-gray-300 items-center">
           <li>
-            <Link
-              href="/nfl"
-              prefetch={false}
-              className={`hover:text-green-400 ${isActive("/nfl")}`}
-            >
+            <Link href="/nfl" className={`hover:text-green-400 ${isActive("/nfl")}`}>
               NFL
             </Link>
           </li>
 
           <li>
-            <Link
-              href="/nba"
-              prefetch={false}
-              className={`hover:text-green-400 ${isActive("/nba")}`}
-            >
+            <Link href="/nba" className={`hover:text-green-400 ${isActive("/nba")}`}>
               NBA
             </Link>
           </li>
 
-          {/* Add NHL Link */}
           <li>
-            <Link
-              href="/nhl"
-              prefetch={false}
-              className={`hover:text-green-400 ${isActive("/nhl")}`}
-            >
+            <Link href="/nhl" className={`hover:text-green-400 ${isActive("/nhl")}`}>
               NHL
             </Link>
           </li>
 
-          {isLoggedIn && !isSubscriber && (
+          {/* ✅ SUBSCRIBE CTA */}
+          {!isSubscriber && (
             <li>
               <Link
                 href="/subscribe"
-                prefetch={false}
-                className={`hover:text-green-400 ${isActive("/subscribe")}`}
+                className={`px-4 py-2 rounded-xl font-bold bg-green-500 text-black hover:bg-green-400 ${
+                  isActive("/subscribe")
+                }`}
               >
                 Subscribe
               </Link>
@@ -77,11 +66,7 @@ export default function Navbar() {
 
           {!isLoggedIn && (
             <li>
-              <Link
-                href="/login"
-                prefetch={false}
-                className={`hover:text-green-400 ${isActive("/login")}`}
-              >
+              <Link href="/login" className={`hover:text-green-400 ${isActive("/login")}`}>
                 Login
               </Link>
             </li>
@@ -90,21 +75,13 @@ export default function Navbar() {
           {isLoggedIn && (
             <>
               <li>
-                <Link
-                  href="/account"
-                  prefetch={false}
-                  className={`hover:text-green-400 ${isActive("/account")}`}
-                >
+                <Link href="/account" className={`hover:text-green-400 ${isActive("/account")}`}>
                   Account
                 </Link>
               </li>
 
               <li>
-                <Link
-                  href="/logout"
-                  prefetch={false}
-                  className="text-gray-400 hover:text-white"
-                >
+                <Link href="/logout" className="text-gray-400 hover:text-white">
                   Logout
                 </Link>
               </li>
@@ -131,43 +108,30 @@ export default function Navbar() {
         <div className="md:hidden bg-black border-t border-neutral-800">
           <ul className="flex flex-col px-6 py-6 space-y-4 text-gray-300">
             <li>
-              <Link
-                href="/nfl"
-                prefetch={false}
-                onClick={() => setMenuOpen(false)}
-              >
+              <Link href="/nfl" onClick={() => setMenuOpen(false)}>
                 NFL
               </Link>
             </li>
 
             <li>
-              <Link
-                href="/nba"
-                prefetch={false}
-                onClick={() => setMenuOpen(false)}
-              >
+              <Link href="/nba" onClick={() => setMenuOpen(false)}>
                 NBA
               </Link>
             </li>
 
-            {/* Add NHL Link to Mobile Menu */}
             <li>
-              <Link
-                href="/nhl"
-                prefetch={false}
-                onClick={() => setMenuOpen(false)}
-              >
+              <Link href="/nhl" onClick={() => setMenuOpen(false)}>
                 NHL
               </Link>
             </li>
 
-            {isLoggedIn && !isSubscriber && (
+            {/* ✅ MOBILE SUBSCRIBE CTA */}
+            {!isSubscriber && (
               <li>
                 <Link
                   href="/subscribe"
-                  prefetch={false}
                   onClick={() => setMenuOpen(false)}
-                  className="text-green-400 font-semibold"
+                  className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl text-center"
                 >
                   Subscribe
                 </Link>
@@ -176,11 +140,7 @@ export default function Navbar() {
 
             {!isLoggedIn && (
               <li>
-                <Link
-                  href="/login"
-                  prefetch={false}
-                  onClick={() => setMenuOpen(false)}
-                >
+                <Link href="/login" onClick={() => setMenuOpen(false)}>
                   Login
                 </Link>
               </li>
@@ -189,21 +149,13 @@ export default function Navbar() {
             {isLoggedIn && (
               <>
                 <li>
-                  <Link
-                    href="/account"
-                    prefetch={false}
-                    onClick={() => setMenuOpen(false)}
-                  >
+                  <Link href="/account" onClick={() => setMenuOpen(false)}>
                     Account
                   </Link>
                 </li>
 
                 <li>
-                  <Link
-                    href="/logout"
-                    prefetch={false}
-                    onClick={() => setMenuOpen(false)}
-                  >
+                  <Link href="/logout" onClick={() => setMenuOpen(false)}>
                     Logout
                   </Link>
                 </li>
@@ -215,6 +167,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 
 
 
