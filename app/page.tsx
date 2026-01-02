@@ -16,7 +16,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-8">
-            Instantly compare last 10 or last 5 vs today's lines for NFL, NBA, and NHL player props.
+            Instantly compare last 10 or last 5 games vs today's lines for NFL, NBA, and NHL player props.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
