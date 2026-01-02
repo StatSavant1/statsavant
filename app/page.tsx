@@ -12,13 +12,11 @@ export default function HomePage() {
         ======================= */}
         <section className="text-center mb-20">
           <h1 className="text-4xl md:text-6xl font-extrabold text-green-400 mb-6">
-            Smarter Player Prop Research
+            See Which Player Props Are Trending - Before You Bet 
           </h1>
 
           <p className="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-8">
-            StatSavant helps bettors identify player prop trends across the
-            NFL, NBA, and NHL — comparing recent performance to current lines
-            so you can spot edges faster and bet with confidence.
+            Instantly compare last 10 or last 5 vs today's lines for NFL, NBA, and NHL player props.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
