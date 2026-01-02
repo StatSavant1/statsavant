@@ -60,7 +60,7 @@ export default function SubscribePage() {
               Founders Pass
             </h2>
             <p className="text-sm text-gray-400 mb-6">
-              Lifetime price lock. First 100 members only.
+              Become a StatSavant Founder 
             </p>
 
             <div className="text-4xl font-bold mb-6">
@@ -73,6 +73,7 @@ export default function SubscribePage() {
               <li>✔ Daily updated trends</li>
               <li>✔ Premium charts + analytics</li>
               <li>✔ Early access pricing before StatSavant scales.</li>
+              <li>✔ Limited to the first 100 members</li>
             </ul>
 
             <button
