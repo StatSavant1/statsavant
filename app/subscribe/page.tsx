@@ -72,7 +72,7 @@ export default function SubscribePage() {
               <li>✔ NFL, NBA, NHL access</li>
               <li>✔ Daily updated trends</li>
               <li>✔ Premium charts + analytics</li>
-              <li>✔ Lifetime locked pricing</li>
+              <li>✔ Early access pricing before StatSavant scales.</li>
             </ul>
 
             <button
