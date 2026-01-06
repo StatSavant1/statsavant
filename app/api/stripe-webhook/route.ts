@@ -13,7 +13,6 @@ export async function POST(req: Request) {
     return new Response("Missing stripe signature", { status: 400 });
   }
 
-  // ✅ Stripe created INSIDE handler (runtime only)
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2025-10-29.clover",
   });
@@ -27,41 +26,71 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err: any) {
-    console.error("Webhook verification failed:", err.message);
+    console.error("❌ Webhook verification failed:", err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();
 
-  // ✅ Subscription activated
+  /* ================================
+     ✅ CHECKOUT COMPLETED
+  ================================= */
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
-    const userId = session.metadata?.user_id;
-    if (userId) {
-      await supabase
-        .from("profiles")
-        .update({
-          subscription_status: "active",
-          stripe_subscription_id: session.subscription,
-          plan_type: session.metadata?.plan_type,
-        })
-        .eq("id", userId);
+    const userId = session.metadata?.supabase_user_id;
+    const plan = session.metadata?.plan;
+
+    if (!userId || !session.subscription) {
+      console.error("❌ Missing metadata on checkout session", session.id);
+      return NextResponse.json({ received: true });
     }
+
+    await supabase
+      .from("profiles")
+      .update({
+        subscription_status: "active",
+        is_subscriber: true,
+        stripe_subscription_id: session.subscription,
+        stripe_customer_id: session.customer,
+        plan_type: plan,
+      })
+      .eq("id", userId);
   }
 
-  // ✅ Subscription canceled
+  /* ================================
+     🔄 SUBSCRIPTION UPDATED
+  ================================= */
+  if (event.type === "customer.subscription.updated") {
+    const subscription = event.data.object as Stripe.Subscription;
+
+    await supabase
+      .from("profiles")
+      .update({
+        subscription_status: subscription.status,
+        is_subscriber: subscription.status === "active",
+      })
+      .eq("stripe_subscription_id", subscription.id);
+  }
+
+  /* ================================
+     ❌ SUBSCRIPTION CANCELED
+  ================================= */
   if (event.type === "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;
 
     await supabase
       .from("profiles")
-      .update({ subscription_status: "inactive" })
+      .update({
+        subscription_status: "inactive",
+        is_subscriber: false,
+      })
       .eq("stripe_subscription_id", subscription.id);
   }
 
   return NextResponse.json({ received: true });
 }
+
 
 
 

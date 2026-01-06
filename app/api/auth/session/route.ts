@@ -23,15 +23,33 @@ export async function GET() {
     }
   );
 
-  const { data, error } = await supabase.auth.getSession();
+  /* ===========================
+     AUTH SESSION
+  =========================== */
+  const { data: sessionData, error } = await supabase.auth.getSession();
 
-  if (error) {
+  if (error || !sessionData.session?.user) {
     return NextResponse.json({ user: null });
   }
 
+  /* ===========================
+     SUBSCRIPTION HYDRATION
+  =========================== */
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("is_subscriber, plan_type, subscription_status")
+    .eq("id", sessionData.session.user.id)
+    .single();
+
+  if (profileError) {
+    console.error("Profile fetch error:", profileError);
+  }
+
   return NextResponse.json({
-    user: data.session?.user ?? null,
+    user: sessionData.session.user,
+    subscription: profile ?? null,
   });
 }
+
 
 

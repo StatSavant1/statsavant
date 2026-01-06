@@ -20,6 +20,11 @@ export default function Navbar() {
     );
   }
 
+  // Auth-aware subscribe link
+  const subscribeHref = isLoggedIn
+    ? "/subscribe"
+    : "/login?redirect=/subscribe";
+
   return (
     <nav className="fixed top-0 left-0 w-full bg-gray-950 z-50">
       <div className="flex items-center justify-between px-6 py-4">
@@ -54,7 +59,7 @@ export default function Navbar() {
           {!isSubscriber && (
             <li>
               <Link
-                href="/subscribe"
+                href={subscribeHref}
                 className={`px-4 py-2 rounded-xl font-bold bg-green-500 text-black hover:bg-green-400 ${
                   isActive("/subscribe")
                 }`}
@@ -66,7 +71,10 @@ export default function Navbar() {
 
           {!isLoggedIn && (
             <li>
-              <Link href="/login" className={`hover:text-green-400 ${isActive("/login")}`}>
+              <Link
+                href="/login"
+                className={`hover:text-green-400 ${isActive("/login")}`}
+              >
                 Login
               </Link>
             </li>
@@ -75,7 +83,10 @@ export default function Navbar() {
           {isLoggedIn && (
             <>
               <li>
-                <Link href="/account" className={`hover:text-green-400 ${isActive("/account")}`}>
+                <Link
+                  href="/account"
+                  className={`hover:text-green-400 ${isActive("/account")}`}
+                >
                   Account
                 </Link>
               </li>
@@ -129,7 +140,7 @@ export default function Navbar() {
             {!isSubscriber && (
               <li>
                 <Link
-                  href="/subscribe"
+                  href={subscribeHref}
                   onClick={() => setMenuOpen(false)}
                   className="bg-green-500 text-black font-bold px-4 py-2 rounded-xl text-center"
                 >
@@ -167,6 +178,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 
 
 
