@@ -14,7 +14,7 @@ export default function LoginInner() {
   const { refreshAuth, isSubscriber } = useAuth();
   const searchParams = useSearchParams();
 
-  // Explicit redirect (only used when provided)
+  // Optional redirect param (used ONLY for non-subscribers)
   const explicitRedirect = searchParams.get("redirect");
 
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -56,16 +56,16 @@ export default function LoginInner() {
       // 🔑 Sync auth + subscription state
       await refreshAuth();
 
-      // ⏭️ Decide redirect AFTER auth state is ready
+      // ⏭️ Redirect AFTER auth context updates
       setTimeout(() => {
-        if (explicitRedirect) {
-          // Respect explicit redirect when provided
-          window.location.replace(explicitRedirect);
-        } else if (isSubscriber) {
-          // Active subscriber → home
+        if (isSubscriber) {
+          // ✅ Subscribers ALWAYS go home
           window.location.replace("/");
+        } else if (explicitRedirect) {
+          // Non-subscribers may respect explicit redirect
+          window.location.replace(explicitRedirect);
         } else {
-          // Free / inactive user → subscribe
+          // Default for free users
           window.location.replace("/subscribe");
         }
       }, 0);
@@ -157,4 +157,5 @@ export default function LoginInner() {
     </main>
   );
 }
+
 
