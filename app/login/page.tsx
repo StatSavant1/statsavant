@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
@@ -47,14 +49,16 @@ export default function LoginPage() {
 
         if (error) throw error;
         if (!data.session) {
-          throw new Error("Account created. Please check your email to confirm.");
+          throw new Error(
+            "Account created. Please check your email to confirm."
+          );
         }
       }
 
       // 🔑 Re-hydrate auth state from cookies
       await refreshAuth();
 
-      // 🔥 Full navigation so navbar + middleware sync correctly
+      // 🔥 Force full navigation so navbar + middleware sync
       window.location.replace(redirectTo);
     } catch (err: any) {
       console.error("Auth error:", err);
@@ -69,7 +73,6 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8"
       >
-        {/* Header */}
         <h1 className="text-2xl font-bold text-green-400 mb-2 text-center">
           {mode === "login" ? "Login" : "Create Account"}
         </h1>
@@ -80,7 +83,6 @@ export default function LoginPage() {
             : "Create an account to unlock StatSavant"}
         </p>
 
-        {/* Email */}
         <input
           type="email"
           placeholder="Email"
@@ -90,7 +92,6 @@ export default function LoginPage() {
           className="w-full mb-4 px-4 py-3 rounded-lg bg-neutral-800 text-white"
         />
 
-        {/* Password */}
         <input
           type="password"
           placeholder="Password"
@@ -100,7 +101,6 @@ export default function LoginPage() {
           className="w-full mb-6 px-4 py-3 rounded-lg bg-neutral-800 text-white"
         />
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -115,12 +115,10 @@ export default function LoginPage() {
             : "Create Account"}
         </button>
 
-        {/* Error */}
         {error && (
           <p className="text-red-400 text-sm mt-4 text-center">{error}</p>
         )}
 
-        {/* Toggle */}
         <p className="text-sm text-gray-400 mt-6 text-center">
           {mode === "login" ? (
             <>
@@ -150,6 +148,7 @@ export default function LoginPage() {
     </main>
   );
 }
+
 
 
 
