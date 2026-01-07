@@ -13,6 +13,8 @@ export default function Navbar() {
   const isActive = (path: string) =>
     pathname === path ? "text-green-400 font-semibold" : "";
 
+  const isSubscribePage = pathname === "/subscribe";
+
   // Prevent layout flash
   if (!authChecked) {
     return (
@@ -55,14 +57,12 @@ export default function Navbar() {
             </Link>
           </li>
 
-          {/* ✅ SUBSCRIBE CTA */}
-          {!isSubscriber && (
+          {/* ✅ SUBSCRIBE CTA (hidden on /subscribe) */}
+          {!isSubscriber && !isSubscribePage && (
             <li>
               <Link
                 href={subscribeHref}
-                className={`px-4 py-2 rounded-xl font-bold bg-green-500 text-black hover:bg-green-400 ${
-                  isActive("/subscribe")
-                }`}
+                className="px-4 py-2 rounded-xl font-bold bg-green-500 text-black hover:bg-green-400 transition"
               >
                 Subscribe
               </Link>
@@ -136,8 +136,8 @@ export default function Navbar() {
               </Link>
             </li>
 
-            {/* ✅ MOBILE SUBSCRIBE CTA */}
-            {!isSubscriber && (
+            {/* ✅ MOBILE SUBSCRIBE CTA (hidden on /subscribe) */}
+            {!isSubscriber && !isSubscribePage && (
               <li>
                 <Link
                   href={subscribeHref}
@@ -178,6 +178,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 
 
 
