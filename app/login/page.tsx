@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -11,13 +12,18 @@ export default function LoginPage() {
   );
 
   const { refreshAuth } = useAuth();
+  const searchParams = useSearchParams();
 
+  // 🔁 Redirect after auth (default to /subscribe)
+  const redirectTo = searchParams.get("redirect") || "/subscribe";
+
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
 
@@ -25,22 +31,34 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (mode === "login") {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) throw error;
-      if (!data.session) throw new Error("No session returned");
+        if (error) throw error;
+        if (!data.session) throw new Error("No session returned");
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      // 🔑 CRITICAL: re-hydrate client auth from server cookies
+        if (error) throw error;
+        if (!data.session) {
+          throw new Error("Account created. Please check your email to confirm.");
+        }
+      }
+
+      // 🔑 Re-hydrate auth state from cookies
       await refreshAuth();
 
-      // 🔥 Force full navigation so middleware + navbar sync
-      window.location.replace("/");
+      // 🔥 Full navigation so navbar + middleware sync correctly
+      window.location.replace(redirectTo);
     } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Login failed");
+      console.error("Auth error:", err);
+      setError(err.message || "Something went wrong");
       setLoading(false);
     }
   }
@@ -48,13 +66,21 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black px-4">
       <form
-        onSubmit={handleLogin}
+        onSubmit={handleSubmit}
         className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8"
       >
-        <h1 className="text-2xl font-bold text-green-400 mb-6 text-center">
-          Login
+        {/* Header */}
+        <h1 className="text-2xl font-bold text-green-400 mb-2 text-center">
+          {mode === "login" ? "Login" : "Create Account"}
         </h1>
 
+        <p className="text-sm text-gray-400 mb-6 text-center">
+          {mode === "login"
+            ? "Log in to access StatSavant"
+            : "Create an account to unlock StatSavant"}
+        </p>
+
+        {/* Email */}
         <input
           type="email"
           placeholder="Email"
@@ -64,6 +90,7 @@ export default function LoginPage() {
           className="w-full mb-4 px-4 py-3 rounded-lg bg-neutral-800 text-white"
         />
 
+        {/* Password */}
         <input
           type="password"
           placeholder="Password"
@@ -73,17 +100,52 @@ export default function LoginPage() {
           className="w-full mb-6 px-4 py-3 rounded-lg bg-neutral-800 text-white"
         />
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
           className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded-lg transition disabled:opacity-50"
         >
-          {loading ? "Logging in…" : "Login"}
+          {loading
+            ? mode === "login"
+              ? "Logging in…"
+              : "Creating account…"
+            : mode === "login"
+            ? "Login"
+            : "Create Account"}
         </button>
 
+        {/* Error */}
         {error && (
           <p className="text-red-400 text-sm mt-4 text-center">{error}</p>
         )}
+
+        {/* Toggle */}
+        <p className="text-sm text-gray-400 mt-6 text-center">
+          {mode === "login" ? (
+            <>
+              Don’t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="text-green-400 hover:underline font-semibold"
+              >
+                Create one
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className="text-green-400 hover:underline font-semibold"
+              >
+                Login
+              </button>
+            </>
+          )}
+        </p>
       </form>
     </main>
   );
