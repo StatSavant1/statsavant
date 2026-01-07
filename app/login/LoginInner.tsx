@@ -11,10 +11,8 @@ export default function LoginInner() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const { refreshAuth, isSubscriber } = useAuth();
+  const { refreshAuth } = useAuth();
   const searchParams = useSearchParams();
-
-  // Optional redirect param (used ONLY for non-subscribers)
   const explicitRedirect = searchParams.get("redirect");
 
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -36,7 +34,6 @@ export default function LoginInner() {
           email,
           password,
         });
-
         if (error) throw error;
         if (!data.session) throw new Error("No session returned");
       } else {
@@ -44,31 +41,32 @@ export default function LoginInner() {
           email,
           password,
         });
-
         if (error) throw error;
         if (!data.session) {
-          throw new Error(
-            "Account created. Please check your email to confirm."
-          );
+          throw new Error("Account created. Please check your email.");
         }
       }
 
-      // 🔑 Sync auth + subscription state
+      // 🔑 Sync cookies
       await refreshAuth();
 
-      // ⏭️ Redirect AFTER auth context updates
-      setTimeout(() => {
-        if (isSubscriber) {
-          // ✅ Subscribers ALWAYS go home
-          window.location.replace("/");
-        } else if (explicitRedirect) {
-          // Non-subscribers may respect explicit redirect
-          window.location.replace(explicitRedirect);
-        } else {
-          // Default for free users
-          window.location.replace("/subscribe");
-        }
-      }, 0);
+      // 🔐 AUTHORITATIVE subscription check (NO race condition)
+      const res = await fetch("/api/auth/session", {
+        cache: "no-store",
+      });
+
+      const json = await res.json();
+      const isSubscriber =
+        json?.subscription?.subscription_status === "active";
+
+      // ⏭️ FINAL redirect
+      if (isSubscriber) {
+        window.location.replace("/");
+      } else if (explicitRedirect) {
+        window.location.replace(explicitRedirect);
+      } else {
+        window.location.replace("/subscribe");
+      }
     } catch (err: any) {
       console.error("Auth error:", err);
       setError(err.message || "Something went wrong");
@@ -157,5 +155,6 @@ export default function LoginInner() {
     </main>
   );
 }
+
 
 
