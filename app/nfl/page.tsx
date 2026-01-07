@@ -8,9 +8,9 @@ import { useAuth } from "@/components/AuthProvider";
 type NFLPlayer = {
   player: string;
   market: string;
-  line: number | null;
-  last_five: number[];
-  avg_l5: number | null;
+  point: number | null;
+  last_ten: number[];
+  avg_l10: number | null;
   updated_at: string | null;
   commence_time: string | null;
 };
@@ -136,7 +136,6 @@ export default function NFLPage() {
     if (isSubscriber) return [];
 
     const seed = getTodayESTKey();
-
     return seededShuffle(uniquePlayers, seed).slice(
       0,
       FREE_PREVIEW_PLAYERS
@@ -147,7 +146,6 @@ export default function NFLPage() {
     if (isSubscriber) return [];
 
     const freeSet = new Set(freePlayers.map((p) => p.player));
-
     return filteredPlayers.filter(
       (p) => !freeSet.has(p.player)
     );
@@ -245,7 +243,7 @@ export default function NFLPage() {
         />
       </div>
 
-      {/* FREE PREVIEW (Randomized) */}
+      {/* FREE PREVIEW */}
       {!isSubscriber && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {freePlayers.map((p, idx) => (
@@ -253,16 +251,16 @@ export default function NFLPage() {
               key={`free-${p.player}-${idx}`}
               player={p.player}
               market={p.market}
-              line={p.line}
-              lastGames={p.last_five}
-              avg={p.avg_l5}
-              windowLabel="L5"
+              line={p.point}
+              lastGames={p.last_ten}
+              avg={p.avg_l10}
+              windowLabel="L10"
             />
           ))}
         </div>
       )}
 
-      {/* SUBSCRIBER VIEW (Alphabetical) */}
+      {/* SUBSCRIBER VIEW */}
       {isSubscriber && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {subscriberPlayers.map((p, idx) => (
@@ -270,10 +268,10 @@ export default function NFLPage() {
               key={`sub-${p.player}-${p.market}-${idx}`}
               player={p.player}
               market={p.market}
-              line={p.line}
-              lastGames={p.last_five}
-              avg={p.avg_l5}
-              windowLabel="L5"
+              line={p.point}
+              lastGames={p.last_ten}
+              avg={p.avg_l10}
+              windowLabel="L10"
             />
           ))}
         </div>
@@ -288,10 +286,10 @@ export default function NFLPage() {
                 <PlayerCard
                   player={p.player}
                   market={p.market}
-                  line={p.line}
-                  lastGames={p.last_five}
-                  avg={p.avg_l5}
-                  windowLabel="L5"
+                  line={p.point}
+                  lastGames={p.last_ten}
+                  avg={p.avg_l10}
+                  windowLabel="L10"
                 />
               </div>
 
@@ -310,6 +308,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 

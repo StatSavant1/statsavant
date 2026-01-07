@@ -11,10 +11,11 @@ export default function LoginInner() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const { refreshAuth } = useAuth();
+  const { refreshAuth, isSubscriber } = useAuth();
   const searchParams = useSearchParams();
 
-  const redirectTo = searchParams.get("redirect") || "/subscribe";
+  // Explicit redirect (only used when provided)
+  const explicitRedirect = searchParams.get("redirect");
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -52,8 +53,22 @@ export default function LoginInner() {
         }
       }
 
+      // 🔑 Sync auth + subscription state
       await refreshAuth();
-      window.location.replace(redirectTo);
+
+      // ⏭️ Decide redirect AFTER auth state is ready
+      setTimeout(() => {
+        if (explicitRedirect) {
+          // Respect explicit redirect when provided
+          window.location.replace(explicitRedirect);
+        } else if (isSubscriber) {
+          // Active subscriber → home
+          window.location.replace("/");
+        } else {
+          // Free / inactive user → subscribe
+          window.location.replace("/subscribe");
+        }
+      }, 0);
     } catch (err: any) {
       console.error("Auth error:", err);
       setError(err.message || "Something went wrong");
@@ -142,3 +157,4 @@ export default function LoginInner() {
     </main>
   );
 }
+

@@ -18,9 +18,9 @@ export async function GET() {
         `
         player,
         market,
-        line,
-        last_five,
-        avg_l5,
+        point,
+        last_ten,
+        avg_l10,
         updated_at,
         home_team,
         away_team,
@@ -40,7 +40,6 @@ export async function GET() {
       success: true,
       stats: data ?? [],
     });
-
   } catch (err: any) {
     console.error("💥 NFL API ERROR:", err);
     return NextResponse.json(
@@ -49,6 +48,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 
