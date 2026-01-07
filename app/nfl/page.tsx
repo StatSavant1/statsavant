@@ -40,7 +40,7 @@ function isTodayOrFuture(commenceTime: string | null): boolean {
 }
 
 /* =======================
-   Seeded Shuffle (stable per day)
+   Seeded Shuffle
 ======================= */
 function seededShuffle<T>(arr: T[], seed: string) {
   const copy = [...arr];
@@ -92,7 +92,7 @@ export default function NFLPage() {
   }, []);
 
   /* =======================
-     Base Filtering
+     Filters
   ======================= */
   const filteredPlayers = useMemo(() => {
     return players
@@ -106,20 +106,13 @@ export default function NFLPage() {
       );
   }, [players, marketFilter, search]);
 
-  /* =======================
-     Alphabetical (Subscribers)
-  ======================= */
   const subscriberPlayers = useMemo(() => {
     if (!isSubscriber) return [];
-
     return [...filteredPlayers].sort((a, b) =>
       a.player.localeCompare(b.player)
     );
   }, [filteredPlayers, isSubscriber]);
 
-  /* =======================
-     Unique Players (Free Preview Pool)
-  ======================= */
   const uniquePlayers = useMemo(() => {
     const seen = new Set<string>();
     return filteredPlayers.filter((p) => {
@@ -129,31 +122,18 @@ export default function NFLPage() {
     });
   }, [filteredPlayers]);
 
-  /* =======================
-     Randomized Free Preview (5 only)
-  ======================= */
   const freePlayers = useMemo(() => {
     if (isSubscriber) return [];
-
     const seed = getTodayESTKey();
-    return seededShuffle(uniquePlayers, seed).slice(
-      0,
-      FREE_PREVIEW_PLAYERS
-    );
+    return seededShuffle(uniquePlayers, seed).slice(0, FREE_PREVIEW_PLAYERS);
   }, [uniquePlayers, isSubscriber]);
 
   const lockedPlayers = useMemo(() => {
     if (isSubscriber) return [];
-
     const freeSet = new Set(freePlayers.map((p) => p.player));
-    return filteredPlayers.filter(
-      (p) => !freeSet.has(p.player)
-    );
+    return filteredPlayers.filter((p) => !freeSet.has(p.player));
   }, [filteredPlayers, freePlayers, isSubscriber]);
 
-  /* =======================
-     Last Updated
-  ======================= */
   const lastUpdated = useMemo(() => {
     const dates = players
       .map((p) => p.updated_at)
@@ -164,9 +144,6 @@ export default function NFLPage() {
     return new Date(Math.max(...dates)).toLocaleString();
   }, [players]);
 
-  /* =======================
-     Loading / Error
-  ======================= */
   if (loading || !authChecked) {
     return <div className="p-8 text-gray-400">Loading NFL data…</div>;
   }
@@ -190,6 +167,12 @@ export default function NFLPage() {
             Last Updated: {lastUpdated}
           </p>
         )}
+
+        {/* ⚠️ WEEK 18 DISCLAIMER */}
+        <p className="mt-2 text-xs text-yellow-400/90">
+          * Note: Week 18 stats are excluded due to players sitting or being
+          limited late in games.
+        </p>
 
         {isPaywalled && (
           <div className="mt-4 bg-neutral-900 border border-neutral-700 rounded-2xl p-4 flex justify-between items-center">
@@ -308,6 +291,7 @@ export default function NFLPage() {
     </div>
   );
 }
+
 
 
 
