@@ -90,10 +90,11 @@ export default function PlayerCard({
             />
 
             <XAxis
-              dataKey="name"
-              tick={{ fill: "#CBD5E1", fontSize: 14 }}
-              tickLine={false}
-            />
+  dataKey="name"
+  interval={0} // 🔥 FORCE ALL LABELS
+  tick={{ fill: "#CBD5E1", fontSize: 14 }}
+  tickLine={false}
+/>
 
             <YAxis
               tick={{ fill: "#CBD5E1", fontSize: 14 }}
@@ -110,7 +111,7 @@ export default function PlayerCard({
               />
             )}
 
-            <Bar dataKey="value" barSize={40} radius={[6, 6, 0, 0]}>
+            <Bar dataKey="value" barSize={28} radius={[6, 6, 0, 0]}>
               <LabelList
                 dataKey="value"
                 position="top"
