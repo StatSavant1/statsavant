@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
+import { Analytics } from "@vercel/analytics/next";
 
 export default function RootLayout({
   children,
@@ -15,10 +16,14 @@ export default function RootLayout({
           {/* 👇 THIS is the ONLY place navbar spacing lives */}
           <main className="pt-24">{children}</main>
         </AuthProvider>
+
+        {/* ✅ Vercel Analytics */}
+        <Analytics />
       </body>
     </html>
   );
 }
+
 
 
 
