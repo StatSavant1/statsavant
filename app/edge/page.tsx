@@ -39,13 +39,6 @@ export default function EdgeLandingPage() {
             </Link>
 
             <Link
-              href="/pricing"
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-center text-base font-semibold text-white/90 transition hover:bg-white/10 sm:w-auto"
-            >
-              View Pricing
-            </Link>
-
-            <Link
               href="/subscribe"
               className="w-full rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-3 text-center text-base font-semibold text-green-300 transition hover:bg-green-500/20 sm:w-auto"
             >
@@ -54,8 +47,7 @@ export default function EdgeLandingPage() {
           </div>
 
           <p className="mt-4 text-sm text-white/50">
-            Create a free account to explore trends. Upgrade anytime for full
-            access.
+            Create a free account to explore trends. Upgrade anytime inside your dashboard.
           </p>
         </header>
 
@@ -99,42 +91,12 @@ export default function EdgeLandingPage() {
             />
           </div>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-10 flex justify-center">
             <Link
               href="/signup"
-              className="w-full rounded-xl bg-green-500 px-6 py-3 text-center text-base font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-green-400 sm:w-auto"
+              className="rounded-xl bg-green-500 px-8 py-3 text-base font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-green-400"
             >
-              Start Free
-            </Link>
-
-            <Link
-              href="/subscribe"
-              className="w-full rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-3 text-center text-base font-semibold text-green-300 transition hover:bg-green-500/20 sm:w-auto"
-            >
-              Subscribe
-            </Link>
-          </div>
-        </section>
-
-        {/* QUICK LINKS */}
-        <section className="mx-auto mt-10 max-w-5xl text-center">
-          <p className="text-sm text-white/50">
-            Explore today’s boards:
-          </p>
-
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            <Link
-              href="/nba"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
-            >
-              View NBA Props
-            </Link>
-
-            <Link
-              href="/nhl"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
-            >
-              View NHL Props
+              Start Free Now
             </Link>
           </div>
         </section>
