@@ -3,41 +3,28 @@ import Link from "next/link";
 
 const BRAND = "StatSavant";
 
-const PRIMARY_CTA_LABEL = "Start Free (Create Account)";
-const PRIMARY_CTA_HREF = "/signup";
-
-const SECONDARY_CTA_LABEL = "View Pricing";
-const SECONDARY_CTA_HREF = "/pricing";
-
-const SUBSCRIBE_CTA_LABEL = "Subscribe";
-const SUBSCRIBE_CTA_HREF = "/subscribe";
-
-const APP_LINKS = [
-  { label: "View NBA Props", href: "/nba" },
-  { label: "View NHL Props", href: "/nhl" },
-];
-
 export default function EdgeLandingPage() {
   return (
     <main className="min-h-screen bg-black text-white">
-      {/* background glow */}
+      {/* Background Glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
-        <div className="absolute bottom-[-220px] right-[-120px] h-[520px] w-[520px] rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="absolute -top-32 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-green-500/15 blur-3xl" />
+        <div className="absolute bottom-[-220px] right-[-120px] h-[520px] w-[520px] rounded-full bg-green-500/10 blur-3xl" />
       </div>
 
       <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-20">
+        {/* HERO */}
         <header className="mx-auto max-w-3xl text-center">
           <p className="mb-3 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
             No picks. No hype. Just data.
           </p>
 
-          <h1 className="text-balance text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
+          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
             See which player props are trending{" "}
-            <span className="text-emerald-400">before you bet</span>.
+            <span className="text-green-400">before you bet</span>.
           </h1>
 
-          <p className="mt-5 text-pretty text-base text-white/70 sm:text-lg">
+          <p className="mt-5 text-base text-white/70 sm:text-lg">
             Instantly compare last 10 or last 5 games vs today’s lines across{" "}
             <span className="text-white/90">NBA & NHL</span>. Stop betting blind
             — check the trend in seconds.
@@ -45,24 +32,24 @@ export default function EdgeLandingPage() {
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href={PRIMARY_CTA_HREF}
-              className="w-full rounded-xl bg-emerald-500 px-6 py-3 text-center text-base font-semibold text-black shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 sm:w-auto"
+              href="/signup"
+              className="w-full rounded-xl bg-green-500 px-6 py-3 text-center text-base font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-green-400 sm:w-auto"
             >
-              {PRIMARY_CTA_LABEL}
+              Start Free (Create Account)
             </Link>
 
             <Link
-              href={SECONDARY_CTA_HREF}
+              href="/pricing"
               className="w-full rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-center text-base font-semibold text-white/90 transition hover:bg-white/10 sm:w-auto"
             >
-              {SECONDARY_CTA_LABEL}
+              View Pricing
             </Link>
 
             <Link
-              href={SUBSCRIBE_CTA_HREF}
-              className="w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-6 py-3 text-center text-base font-semibold text-emerald-200 transition hover:bg-emerald-500/15 sm:w-auto"
+              href="/subscribe"
+              className="w-full rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-3 text-center text-base font-semibold text-green-300 transition hover:bg-green-500/20 sm:w-auto"
             >
-              {SUBSCRIBE_CTA_LABEL}
+              Subscribe
             </Link>
           </div>
 
@@ -70,15 +57,9 @@ export default function EdgeLandingPage() {
             Create a free account to explore trends. Upgrade anytime for full
             access.
           </p>
-
-          <div className="mt-4 text-sm text-white/50">
-            Already have an account?{" "}
-            <Link href="/login" className="text-emerald-400 hover:underline">
-              Log in
-            </Link>
-          </div>
         </header>
 
+        {/* FEATURES */}
         <section className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-3">
           <FeatureCard
             title="Trend-Based Edge"
@@ -94,6 +75,7 @@ export default function EdgeLandingPage() {
           />
         </section>
 
+        {/* HOW IT WORKS */}
         <section className="mx-auto mt-14 max-w-5xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-10">
           <h2 className="text-center text-2xl font-bold sm:text-3xl">
             How it works
@@ -119,45 +101,46 @@ export default function EdgeLandingPage() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href={PRIMARY_CTA_HREF}
-              className="w-full rounded-xl bg-emerald-500 px-6 py-3 text-center text-base font-semibold text-black shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 sm:w-auto"
+              href="/signup"
+              className="w-full rounded-xl bg-green-500 px-6 py-3 text-center text-base font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-green-400 sm:w-auto"
             >
-              {PRIMARY_CTA_LABEL}
+              Start Free
             </Link>
 
             <Link
-              href={SUBSCRIBE_CTA_HREF}
-              className="w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-6 py-3 text-center text-base font-semibold text-emerald-200 transition hover:bg-emerald-500/15 sm:w-auto"
+              href="/subscribe"
+              className="w-full rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-3 text-center text-base font-semibold text-green-300 transition hover:bg-green-500/20 sm:w-auto"
             >
-              {SUBSCRIBE_CTA_LABEL}
+              Subscribe
             </Link>
           </div>
-
-          <p className="mt-4 text-center text-sm text-white/45">
-            Most users start free to explore before upgrading.
-          </p>
         </section>
 
+        {/* QUICK LINKS */}
         <section className="mx-auto mt-10 max-w-5xl text-center">
           <p className="text-sm text-white/50">
-            Quick links (if your pages allow viewing):
+            Explore today’s boards:
           </p>
+
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            {APP_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
-              >
-                {l.label}
-              </Link>
-            ))}
+            <Link
+              href="/nba"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+            >
+              View NBA Props
+            </Link>
+
+            <Link
+              href="/nhl"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+            >
+              View NHL Props
+            </Link>
           </div>
         </section>
 
         <footer className="mx-auto mt-14 max-w-5xl border-t border-white/10 pt-6 text-center text-xs text-white/40">
-          © {new Date().getFullYear()} {BRAND}. Data helps — nothing is
-          guaranteed.
+          © {new Date().getFullYear()} {BRAND}. Data helps — nothing is guaranteed.
         </footer>
       </div>
     </main>
@@ -166,9 +149,9 @@ export default function EdgeLandingPage() {
 
 function FeatureCard({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-emerald-400">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-white/70">{text}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+      <h3 className="text-lg font-semibold text-green-400">{title}</h3>
+      <p className="mt-2 text-sm text-white/70">{text}</p>
     </div>
   );
 }
@@ -184,7 +167,7 @@ function Step({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-sm font-bold text-emerald-300">
+      <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-500/15 text-sm font-bold text-green-300">
         {num}
       </div>
       <h3 className="text-base font-semibold">{title}</h3>
